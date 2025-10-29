@@ -34,7 +34,7 @@ export interface Trade {
 }
 
 const Index = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [trades, setTrades] = useState<Trade[]>([]);
   const [showForm, setShowForm] = useState(false);
 
@@ -81,18 +81,27 @@ const Index = () => {
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Brain className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Trade Journal</h1>
-              <p className="text-sm text-muted-foreground">
-                Track your XAUUSD & XAGUSD trades
-              </p>
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Brain className="w-6 h-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Trade Journal</h1>
+            <p className="text-sm text-muted-foreground">
+              Track your XAUUSD & XAGUSD trades
+            </p>
           </div>
         </div>
+
+        {/* 🔹 Logout button */}
+        <button
+          onClick={() => logout()}
+          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors"
+        >
+          Logout
+        </button>
+      </div>
+
 
         {/* Summary Stats */}
         <TradeSummary trades={trades} />

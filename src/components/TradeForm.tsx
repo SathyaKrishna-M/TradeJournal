@@ -41,6 +41,7 @@ export const TradeForm = ({ onSubmit, showForm, setShowForm }: TradeFormProps) =
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
+
     // Reset form
     setFormData({
       date: new Date().toISOString().split("T")[0],
@@ -80,11 +81,7 @@ export const TradeForm = ({ onSubmit, showForm, setShowForm }: TradeFormProps) =
     <div className="mb-8 p-6 rounded-xl bg-card border border-border">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-semibold">New Trade Entry</h2>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setShowForm(false)}
-        >
+        <Button variant="ghost" size="icon" onClick={() => setShowForm(false)}>
           <X className="w-4 h-4" />
         </Button>
       </div>
@@ -177,21 +174,6 @@ export const TradeForm = ({ onSubmit, showForm, setShowForm }: TradeFormProps) =
             />
           </div>
 
-          {/* Entry */}
-          <div className="space-y-2">
-            <Label htmlFor="entry">Entry</Label>
-            <Input
-              id="entry"
-              type="number"
-              step="0.001"
-              value={formData.entry}
-              onChange={(e) =>
-                setFormData({ ...formData, entry: parseFloat(e.target.value) })
-              }
-              required
-            />
-          </div>
-
           {/* Stop Loss */}
           <div className="space-y-2">
             <Label htmlFor="stopLoss">Stop Loss</Label>
@@ -222,20 +204,35 @@ export const TradeForm = ({ onSubmit, showForm, setShowForm }: TradeFormProps) =
             />
           </div>
 
-          {/* P/L */}
+          {/* ✅ Fixed P/L Field */}
           <div className="space-y-2">
             <Label htmlFor="profitLoss">P/L ($)</Label>
             <Input
               id="profitLoss"
-              type="number"
-              step="0.01"
-              value={formData.profitLoss}
-              onChange={(e) =>
-                setFormData({ ...formData, profitLoss: parseFloat(e.target.value) })
-              }
-              required
+              type="text"
+              inputMode="decimal"
+              value={String(formData.profitLoss)}
+              onChange={(e) => {
+                const val = e.target.value;
+
+                // Allow empty input, "-", ".", "-.", and valid numbers
+                if (/^-?\d*\.?\d*$/.test(val)) {
+                  setFormData({
+                    ...formData,
+                    profitLoss:
+                      val === "" || val === "-" || val === "." || val === "-."
+                        ? (val as unknown as number) // keep temp text state
+                        : parseFloat(val),
+                  });
+                }
+              }}
+              placeholder="Use negative for loss (e.g., -50)"
             />
+            <p className="text-xs text-muted-foreground">
+              Use negative value for losses (e.g., -25.50)
+            </p>
           </div>
+
 
           {/* RR Ratio */}
           <div className="space-y-2">
