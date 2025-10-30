@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Trade } from "@/pages/Index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,18 +64,19 @@ export const TradeForm = ({ onSubmit, showForm, setShowForm }: TradeFormProps) =
 
   if (!showForm) {
     return (
-      <div className="mb-8">
+      <div className="mb-8 flex justify-end">
         <Button
           onClick={() => setShowForm(true)}
           size="lg"
-          className="w-full sm:w-auto"
+          className="flex items-center gap-2 bg-[#00FF9C] hover:bg-[#00cc7a] text-black font-semibold px-4 py-2 rounded-lg transition-all"
         >
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="w-4 h-4" />
           Add Trade
         </Button>
       </div>
     );
   }
+
 
   return (
     <div className="mb-8 p-6 rounded-xl bg-card border border-border">

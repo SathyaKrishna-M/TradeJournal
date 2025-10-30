@@ -1,32 +1,49 @@
 // src/App.tsx
 import { Routes, Route, Navigate } from "react-router-dom";
 import AuthPage from "./pages/AuthPage";
-import { useAuth } from "./context/AuthContext";
 import Index from "./pages/Index";
+import ProfilePage from "./pages/ProfilePage";
+import { PrivateRoute } from "./components/PrivateRoute";
+import { useAuth } from "./context/AuthContext";
 
 function App() {
-  const { user } = useAuth();
+  const { currentUser } = useAuth();
 
   return (
     <Routes>
-      {/* If logged in → go to dashboard */}
+      {/* Default route: redirect based on login state */}
       <Route
         path="/"
-        element={user ? <Navigate to="/dashboard" /> : <AuthPage />}
+        element={
+          currentUser ? <Navigate to="/dashboard" replace /> : <AuthPage />
+        }
       />
 
-      {/* Login and Signup */}
+      {/* Auth routes */}
       <Route path="/login" element={<AuthPage />} />
       <Route path="/signup" element={<AuthPage />} />
 
-      {/* Dashboard */}
+      {/* Protected routes */}
       <Route
         path="/dashboard"
-        element={user ? <Index /> : <Navigate to="/login" />}
+        element={
+          <PrivateRoute>
+            <Index />
+          </PrivateRoute>
+        }
       />
 
-      {/* Fallback for invalid URLs */}
-      <Route path="*" element={<Navigate to="/" />} />
+      <Route
+        path="/profile"
+        element={
+          <PrivateRoute>
+            <ProfilePage />
+          </PrivateRoute>
+        }
+      />
+
+      {/* Fallback */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

@@ -1,74 +1,44 @@
+// src/components/TradeSummary.tsx
 import { Trade } from "@/pages/Index";
-import { TrendingUp, TrendingDown, Target, BarChart3 } from "lucide-react";
 
 interface TradeSummaryProps {
   trades: Trade[];
 }
 
 export const TradeSummary = ({ trades }: TradeSummaryProps) => {
-  const totalTrades = trades.length;
-  const winningTrades = trades.filter((t) => t.profitLoss > 0).length;
-  const losingTrades = trades.filter((t) => t.profitLoss < 0).length;
-  const winRate = totalTrades > 0 ? ((winningTrades / totalTrades) * 100).toFixed(1) : "0.0";
-  const totalPL = trades.reduce((sum, t) => sum + t.profitLoss, 0);
-  const avgRR = totalTrades > 0 
-    ? (trades.reduce((sum, t) => sum + t.rrRatio, 0) / totalTrades).toFixed(2) 
-    : "0.00";
-
-  const stats = [
-    {
-      label: "Total P/L",
-      value: `$${totalPL.toFixed(2)}`,
-      icon: totalPL >= 0 ? TrendingUp : TrendingDown,
-      color: totalPL >= 0 ? "text-success" : "text-destructive",
-      bgColor: totalPL >= 0 ? "bg-success/10" : "bg-destructive/10",
-    },
-    {
-      label: "Win Rate",
-      value: `${winRate}%`,
-      icon: Target,
-      color: "text-primary",
-      bgColor: "bg-primary/10",
-    },
-    {
-      label: "Avg RR Ratio",
-      value: avgRR,
-      icon: BarChart3,
-      color: "text-primary",
-      bgColor: "bg-primary/10",
-    },
-    {
-      label: "Total Trades",
-      value: totalTrades.toString(),
-      subValue: `${winningTrades}W / ${losingTrades}L`,
-      icon: BarChart3,
-      color: "text-foreground",
-      bgColor: "bg-muted",
-    },
-  ];
+  if (trades.length === 0) return null; // optional
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-      {stats.map((stat, index) => {
-        const Icon = stat.icon;
-        return (
-          <div
-            key={index}
-            className="p-6 rounded-xl bg-card border border-border hover:border-primary/50 transition-all duration-300"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm text-muted-foreground font-medium">{stat.label}</span>
-              <div className={`w-10 h-10 rounded-lg ${stat.bgColor} flex items-center justify-center`}>
-                <Icon className={`w-5 h-5 ${stat.color}`} />
-              </div>
-            </div>
-            <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
-            {stat.subValue && (
-              <div className="text-xs text-muted-foreground mt-1">{stat.subValue}</div>
-            )}
-          </div>
-        );
-      })}
+    <div className="mt-10 bg-black/40 backdrop-blur-md border border-[#00FF9C]/10 rounded-2xl p-6 shadow-[0_0_30px_rgba(0,255,156,0.08)]">
+      <h2 className="text-xl font-semibold text-white mb-4">Trade Summary</h2>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+        <div>
+          <p className="text-slate-400 text-sm">Total Trades</p>
+          <p className="text-2xl font-bold text-[#00FF9C]">{trades.length}</p>
+        </div>
+        <div>
+          <p className="text-slate-400 text-sm">Winning Trades</p>
+          <p className="text-2xl font-bold text-green-400">
+            {trades.filter(t => t.profitLoss > 0).length}
+          </p>
+        </div>
+        <div>
+          <p className="text-slate-400 text-sm">Losing Trades</p>
+          <p className="text-2xl font-bold text-red-400">
+            {trades.filter(t => t.profitLoss < 0).length}
+          </p>
+        </div>
+        <div>
+          <p className="text-slate-400 text-sm">Avg R:R</p>
+          <p className="text-2xl font-bold text-[#00FF9C]">
+            {(
+              trades.reduce((s, t) => s + (t.rrRatio || 0), 0) /
+              (trades.length || 1)
+            ).toFixed(2)}
+          </p>
+        </div>
+      </div>
     </div>
   );
 };
