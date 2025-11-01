@@ -1,342 +1,297 @@
-import React, { useState } from "react";
-import { Trade } from "@/pages/Index";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Plus, X } from "lucide-react";
+"use client";
 
-interface TradeFormProps {
-  onSubmit: (trade: Omit<Trade, "id">) => void;
-  showForm: boolean;
-  setShowForm: (show: boolean) => void;
+import React, { useState, useEffect } from "react";
+
+export interface TradeData {
+  date: string;
+  pair: "XAUUSD" | "XAGUSD";
+  direction: "Buy" | "Sell";
+  entry: number;
+  stopLoss: number;
+  takeProfit: number;
+  profitLoss: number;
+  rrRatio: number;
+  notes: string;
+  session: "London" | "New York" | "Asian";
+  emotion: "Calm" | "Fear" | "Greedy" | "Revenge";
 }
 
-export const TradeForm = ({ onSubmit, showForm, setShowForm }: TradeFormProps) => {
-  const [formData, setFormData] = useState<Omit<Trade, "id">>({
-    date: new Date().toISOString().split("T")[0],
-    pair: "XAUUSD",
-    direction: "Buy",
-    setupType: "Breakout",
-    lotSize: 0,
-    entry: 0,
-    stopLoss: 0,
-    takeProfit: 0,
-    profitLoss: 0,
-    rrRatio: 0,
-    session: "London",
-    emotion: "Calm",
-    reason: "",
-    notes: "",
-    lesson: "",
-  });
+interface TradeFormProps {
+  showForm: boolean;
+  setShowForm: (v: boolean) => void;
+  onSubmit: (trade: Omit<TradeData, "id">) => Promise<void> | void;
+}
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit(formData);
+export const TradeForm: React.FC<TradeFormProps> = ({
+  showForm,
+  setShowForm,
+  onSubmit,
+}) => {
+  const [date, setDate] = useState("");
+  const [pair, setPair] = useState<"XAUUSD" | "XAGUSD">("XAUUSD");
+  const [direction, setDirection] = useState<"Buy" | "Sell">("Buy");
+  const [entry, setEntry] = useState<number | "">("");
+  const [stopLoss, setStopLoss] = useState<number | "">("");
+  const [takeProfit, setTakeProfit] = useState<number | "">("");
+  const [profitLoss, setProfitLoss] = useState<number | "">("");
+  const [rrRatio, setRrRatio] = useState<number | "">("");
+  const [notes, setNotes] = useState("");
+  const [session, setSession] = useState<"London" | "New York" | "Asian">("London");
+  const [emotion, setEmotion] = useState<"Calm" | "Fear" | "Greedy" | "Revenge">("Calm");
+  const [loading, setLoading] = useState(false);
 
-    // Reset form
-    setFormData({
-      date: new Date().toISOString().split("T")[0],
-      pair: "XAUUSD",
-      direction: "Buy",
-      setupType: "Breakout",
-      lotSize: 0,
-      entry: 0,
-      stopLoss: 0,
-      takeProfit: 0,
-      profitLoss: 0,
-      rrRatio: 0,
-      session: "London",
-      emotion: "Calm",
-      reason: "",
-      notes: "",
-      lesson: "",
-    });
+  useEffect(() => {
+    if (!showForm) resetForm();
+  }, [showForm]);
+
+  const resetForm = () => {
+    setDate("");
+    setPair("XAUUSD");
+    setDirection("Buy");
+    setEntry("");
+    setStopLoss("");
+    setTakeProfit("");
+    setProfitLoss("");
+    setRrRatio("");
+    setNotes("");
+    setSession("London");
+    setEmotion("Calm");
+    setLoading(false);
   };
 
-  if (!showForm) {
-    return (
-      <div className="mb-8 flex justify-end">
-        <Button
-          onClick={() => setShowForm(true)}
-          size="lg"
-          className="flex items-center gap-2 bg-[#00FF9C] hover:bg-[#00cc7a] text-black font-semibold px-4 py-2 rounded-lg transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          Add Trade
-        </Button>
-      </div>
-    );
-  }
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    setLoading(true);
+    try {
+      if (!date) {
+        alert("Please pick a date");
+        setLoading(false);
+        return;
+      }
 
+      const payload: TradeData = {
+        date,
+        pair,
+        direction,
+        entry: Number(entry || 0),
+        stopLoss: Number(stopLoss || 0),
+        takeProfit: Number(takeProfit || 0),
+        profitLoss: Number(profitLoss || 0),
+        rrRatio: Number(rrRatio || 0),
+        notes,
+        session,
+        emotion,
+      };
+
+      await onSubmit(payload);
+      resetForm();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+      setShowForm(false);
+    }
+  };
+
+  if (!showForm) return null;
 
   return (
-    <div className="mb-8 p-6 rounded-xl bg-card border border-border">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold">New Trade Entry</h2>
-        <Button variant="ghost" size="icon" onClick={() => setShowForm(false)}>
-          <X className="w-4 h-4" />
-        </Button>
-      </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* overlay */}
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        onClick={() => setShowForm(false)}
+      />
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* form */}
+      <form
+        onSubmit={handleSubmit}
+        className="relative z-50 w-full max-w-lg p-6 rounded-2xl bg-card border border-border shadow-lg text-foreground"
+      >
+        {/* header */}
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold">Add Trade</h3>
+          <button
+            type="button"
+            onClick={() => setShowForm(false)}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* form fields */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Date */}
-          <div className="space-y-2">
-            <Label htmlFor="date">Date</Label>
-            <Input
-              id="date"
+          <div className="flex flex-col">
+            <label className="text-sm mb-1 text-muted-foreground">Date</label>
+            <input
               type="date"
-              value={formData.date}
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="p-2 rounded-md bg-background/30 border border-border"
               required
             />
           </div>
 
           {/* Pair */}
-          <div className="space-y-2">
-            <Label htmlFor="pair">Pair</Label>
-            <Select
-              value={formData.pair}
-              onValueChange={(value: "XAUUSD" | "XAGUSD") =>
-                setFormData({ ...formData, pair: value })
-              }
+          <div className="flex flex-col">
+            <label className="text-sm mb-1 text-muted-foreground">Pair</label>
+            <select
+              value={pair}
+              onChange={(e) => setPair(e.target.value as "XAUUSD" | "XAGUSD")}
+              className="p-2 rounded-md bg-background/30 border border-border"
             >
-              <SelectTrigger id="pair">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="XAUUSD">XAUUSD</SelectItem>
-                <SelectItem value="XAGUSD">XAGUSD</SelectItem>
-              </SelectContent>
-            </Select>
+              <option value="XAUUSD">XAUUSD</option>
+              <option value="XAGUSD">XAGUSD</option>
+            </select>
           </div>
 
           {/* Direction */}
-          <div className="space-y-2">
-            <Label htmlFor="direction">Direction</Label>
-            <Select
-              value={formData.direction}
-              onValueChange={(value: "Buy" | "Sell") =>
-                setFormData({ ...formData, direction: value })
-              }
+          <div className="flex flex-col">
+            <label className="text-sm mb-1 text-muted-foreground">Direction</label>
+            <select
+              value={direction}
+              onChange={(e) => setDirection(e.target.value as "Buy" | "Sell")}
+              className="p-2 rounded-md bg-background/30 border border-border"
             >
-              <SelectTrigger id="direction">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Buy">Buy</SelectItem>
-                <SelectItem value="Sell">Sell</SelectItem>
-              </SelectContent>
-            </Select>
+              <option value="Buy">Buy</option>
+              <option value="Sell">Sell</option>
+            </select>
           </div>
 
-          {/* Setup Type */}
-          <div className="space-y-2">
-            <Label htmlFor="setupType">Setup Type</Label>
-            <Select
-              value={formData.setupType}
-              onValueChange={(value: Trade["setupType"]) =>
-                setFormData({ ...formData, setupType: value })
-              }
-            >
-              <SelectTrigger id="setupType">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Breakout">Breakout</SelectItem>
-                <SelectItem value="Reversal">Reversal</SelectItem>
-                <SelectItem value="Range">Range</SelectItem>
-                <SelectItem value="News">News</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Lot Size */}
-          <div className="space-y-2">
-            <Label htmlFor="lotSize">Lot Size</Label>
-            <Input
-              id="lotSize"
+          {/* Entry */}
+          <div className="flex flex-col">
+            <label className="text-sm mb-1 text-muted-foreground">Entry</label>
+            <input
               type="number"
-              step="0.01"
-              value={formData.lotSize}
+              placeholder="Entry"
+              value={entry}
               onChange={(e) =>
-                setFormData({ ...formData, lotSize: parseFloat(e.target.value) })
+                setEntry(e.target.value === "" ? "" : Number(e.target.value))
               }
-              required
+              className="p-2 rounded-md bg-background/30 border border-border"
             />
           </div>
 
           {/* Stop Loss */}
-          <div className="space-y-2">
-            <Label htmlFor="stopLoss">Stop Loss</Label>
-            <Input
-              id="stopLoss"
+          <div className="flex flex-col">
+            <label className="text-sm mb-1 text-muted-foreground">Stop Loss</label>
+            <input
               type="number"
-              step="0.001"
-              value={formData.stopLoss}
+              placeholder="Stop Loss"
+              value={stopLoss}
               onChange={(e) =>
-                setFormData({ ...formData, stopLoss: parseFloat(e.target.value) })
+                setStopLoss(e.target.value === "" ? "" : Number(e.target.value))
               }
-              required
+              className="p-2 rounded-md bg-background/30 border border-border"
             />
           </div>
 
           {/* Take Profit */}
-          <div className="space-y-2">
-            <Label htmlFor="takeProfit">Take Profit</Label>
-            <Input
-              id="takeProfit"
+          <div className="flex flex-col">
+            <label className="text-sm mb-1 text-muted-foreground">Take Profit</label>
+            <input
               type="number"
-              step="0.001"
-              value={formData.takeProfit}
+              placeholder="Take Profit"
+              value={takeProfit}
               onChange={(e) =>
-                setFormData({ ...formData, takeProfit: parseFloat(e.target.value) })
+                setTakeProfit(e.target.value === "" ? "" : Number(e.target.value))
               }
-              required
+              className="p-2 rounded-md bg-background/30 border border-border"
             />
           </div>
 
-          {/* ✅ Fixed P/L Field */}
-          <div className="space-y-2">
-            <Label htmlFor="profitLoss">P/L ($)</Label>
-            <Input
-              id="profitLoss"
-              type="text"
-              inputMode="decimal"
-              value={String(formData.profitLoss)}
-              onChange={(e) => {
-                const val = e.target.value;
-
-                // Allow empty input, "-", ".", "-.", and valid numbers
-                if (/^-?\d*\.?\d*$/.test(val)) {
-                  setFormData({
-                    ...formData,
-                    profitLoss:
-                      val === "" || val === "-" || val === "." || val === "-."
-                        ? (val as unknown as number) // keep temp text state
-                        : parseFloat(val),
-                  });
-                }
-              }}
-              placeholder="Use negative for loss (e.g., -50)"
+          {/* P/L */}
+          <div className="flex flex-col">
+            <label className="text-sm mb-1 text-muted-foreground">P/L</label>
+            <input
+              type="number"
+              placeholder="Profit / Loss"
+              value={profitLoss}
+              onChange={(e) =>
+                setProfitLoss(e.target.value === "" ? "" : Number(e.target.value))
+              }
+              className="p-2 rounded-md bg-background/30 border border-border"
             />
-            <p className="text-xs text-muted-foreground">
-              Use negative value for losses (e.g., -25.50)
-            </p>
           </div>
-
 
           {/* RR Ratio */}
-          <div className="space-y-2">
-            <Label htmlFor="rrRatio">RR Ratio</Label>
-            <Input
-              id="rrRatio"
+          <div className="flex flex-col">
+            <label className="text-sm mb-1 text-muted-foreground">R:R Ratio</label>
+            <input
               type="number"
-              step="0.1"
-              value={formData.rrRatio}
+              placeholder="Reward : Risk"
+              value={rrRatio}
               onChange={(e) =>
-                setFormData({ ...formData, rrRatio: parseFloat(e.target.value) })
+                setRrRatio(e.target.value === "" ? "" : Number(e.target.value))
               }
-              required
+              className="p-2 rounded-md bg-background/30 border border-border"
             />
           </div>
 
           {/* Session */}
-          <div className="space-y-2">
-            <Label htmlFor="session">Session</Label>
-            <Select
-              value={formData.session}
-              onValueChange={(value: Trade["session"]) =>
-                setFormData({ ...formData, session: value })
+          <div className="flex flex-col">
+            <label className="text-sm mb-1 text-muted-foreground">Session</label>
+            <select
+              value={session}
+              onChange={(e) =>
+                setSession(e.target.value as "London" | "New York" | "Asian")
               }
+              className="p-2 rounded-md bg-background/30 border border-border"
             >
-              <SelectTrigger id="session">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="London">London</SelectItem>
-                <SelectItem value="New York">New York</SelectItem>
-                <SelectItem value="Asian">Asian</SelectItem>
-              </SelectContent>
-            </Select>
+              <option value="London">London</option>
+              <option value="New York">New York</option>
+              <option value="Asian">Asian</option>
+            </select>
           </div>
 
           {/* Emotion */}
-          <div className="space-y-2">
-            <Label htmlFor="emotion">Emotion</Label>
-            <Select
-              value={formData.emotion}
-              onValueChange={(value: Trade["emotion"]) =>
-                setFormData({ ...formData, emotion: value })
+          <div className="flex flex-col">
+            <label className="text-sm mb-1 text-muted-foreground">Emotion</label>
+            <select
+              value={emotion}
+              onChange={(e) =>
+                setEmotion(
+                  e.target.value as "Calm" | "Fear" | "Greedy" | "Revenge"
+                )
               }
+              className="p-2 rounded-md bg-background/30 border border-border"
             >
-              <SelectTrigger id="emotion">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Calm">Calm</SelectItem>
-                <SelectItem value="Fear">Fear</SelectItem>
-                <SelectItem value="Greedy">Greedy</SelectItem>
-                <SelectItem value="Revenge">Revenge</SelectItem>
-              </SelectContent>
-            </Select>
+              <option value="Calm">Calm</option>
+              <option value="Fear">Fear</option>
+              <option value="Greedy">Greedy</option>
+              <option value="Revenge">Revenge</option>
+            </select>
           </div>
         </div>
 
-        {/* Text Areas */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="reason">Reason</Label>
-            <Textarea
-              id="reason"
-              value={formData.reason}
-              onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-              placeholder="Why did you take this trade?"
-              className="resize-none h-24"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes</Label>
-            <Textarea
-              id="notes"
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="Additional observations..."
-              className="resize-none h-24"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="lesson">Lesson</Label>
-            <Textarea
-              id="lesson"
-              value={formData.lesson}
-              onChange={(e) => setFormData({ ...formData, lesson: e.target.value })}
-              placeholder="What did you learn?"
-              className="resize-none h-24"
-            />
-          </div>
+        {/* Notes */}
+        <div className="flex flex-col mt-4">
+          <label className="text-sm mb-1 text-muted-foreground">Notes</label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Trade reasoning, emotions, lessons..."
+            className="p-2 rounded-md bg-background/30 border border-border min-h-[80px]"
+          />
         </div>
 
-        <div className="flex gap-3 justify-end">
-          <Button
+        {/* actions */}
+        <div className="flex items-center justify-end gap-3 mt-6">
+          <button
             type="button"
-            variant="outline"
             onClick={() => setShowForm(false)}
+            className="px-4 py-2 rounded-md border border-border text-muted-foreground hover:text-foreground"
           >
             Cancel
-          </Button>
-          <Button type="submit">Add Trade</Button>
+          </button>
+          <button
+            type="submit"
+            className="px-4 py-2 rounded-md bg-[#00FF9C] text-black font-semibold hover:bg-[#00cc7a]"
+          >
+            {loading ? "Saving..." : "Save Trade"}
+          </button>
         </div>
       </form>
     </div>

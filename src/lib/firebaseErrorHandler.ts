@@ -1,5 +1,5 @@
 // src/lib/firebaseErrorHandler.ts
-import { toast } from "@/components/ui/use-toast"; // Adjust if your toast import path differs
+import { toast } from "@/hooks/use-toast";
 import { FirebaseError } from "firebase/app";
 
 /**
@@ -29,6 +29,21 @@ export function handleFirebaseError(error: unknown, action?: string) {
         break;
       case "auth/network-request-failed":
         message = "Network issue. Please check your connection.";
+        break;
+      case "storage/unauthorized":
+        message = "You don't have permission to upload files.";
+        break;
+      case "storage/canceled":
+        message = "Upload was canceled.";
+        break;
+      case "storage/unknown":
+        message = "An unknown error occurred while uploading.";
+        break;
+      case "storage/quota-exceeded":
+        message = "Storage quota exceeded. Please contact support.";
+        break;
+      case "storage/unauthenticated":
+        message = "Please log in to upload files.";
         break;
       default:
         message = error.message || "Unexpected error occurred.";

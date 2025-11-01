@@ -12,6 +12,7 @@ import {
   User,
 } from "firebase/auth";
 import { auth } from "../lib/firebase";
+import { updateUserProfile, changeUserPassword } from "../lib/firebase";
 
 // ✅ Define the type for context
 export interface AuthContextType {
@@ -21,6 +22,8 @@ export interface AuthContextType {
   resetPassword: (email: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
+  updateProfile: (displayName?: string, photoURL?: string) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
 // ✅ Create the context
@@ -56,6 +59,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await signOut(auth);
   };
 
+  const updateProfileHandler = async (displayName?: string, photoURL?: string) => {
+    await updateUserProfile(displayName, photoURL);
+  };
+
+  const changePasswordHandler = async (currentPassword: string, newPassword: string) => {
+    await changeUserPassword(currentPassword, newPassword);
+  };
+
   // ✅ Return currentUser and all methods
   const value: AuthContextType = {
     currentUser,
@@ -64,6 +75,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     resetPassword,
     loginWithGoogle,
     logout,
+    updateProfile: updateProfileHandler,
+    changePassword: changePasswordHandler,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -2,12 +2,55 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* ========== DESIGN SYSTEM ==========
+   All colors defined in HSL.
+==================================== */
 
 @layer base {
+  /* 🌞 LIGHT THEME */
   :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 10%;
+
+    --card: 0 0% 98%;
+    --card-foreground: 0 0% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+
+    --primary: 168 100% 39%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 10%;
+
+    --muted: 0 0% 90%;
+    --muted-foreground: 0 0% 45%;
+
+    --accent: 168 100% 39%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 98%;
+
+    --border: 0 0% 85%;
+    --input: 0 0% 96%;
+    --ring: 168 100% 39%;
+
+    --radius: 0.75rem;
+
+    --chart-1: 168 100% 39%;
+    --chart-2: 220 70% 50%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+
+  /* 🌚 DARK THEME */
+  .dark {
     --background: 0 0% 4%;
     --foreground: 0 0% 90%;
 
@@ -38,14 +81,6 @@ All colors MUST be HSL.
     --border: 0 0% 20%;
     --input: 0 0% 13%;
     --ring: 168 100% 39%;
-
-    --radius: 0.75rem;
-
-    --chart-1: 168 100% 39%;
-    --chart-2: 220 70% 50%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
   }
 }
 
@@ -55,7 +90,7 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground transition-colors duration-300;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
@@ -67,15 +102,5 @@ All colors MUST be HSL.
 
   input[type="number"] {
     -moz-appearance: textfield;
-  }
-}
-
-@layer base {
-  * {
-    @apply border-border;
-  }
-
-  body {
-    @apply bg-background text-foreground;
   }
 }

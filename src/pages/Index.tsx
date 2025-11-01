@@ -3,14 +3,17 @@
 import { useEffect, useMemo, useState } from "react";
 import DashboardHeader from "@/components/DashboardHeader";
 import { useAuth } from "@/context/AuthContext";
-import { TradeSummary } from "@/components/TradeSummary";
 import { TradeForm } from "@/components/TradeForm";
 import { TradeTable } from "@/components/TradeTable";
+import { TradeSummary } from "@/components/TradeSummary";
+import { MT5Upload } from "@/components/MT5Upload";
+ // ✅ FIXED import (was destructured incorrectly)
 import {
   collection,
   addDoc,
   onSnapshot,
   deleteDoc,
+  updateDoc,
   doc,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -21,6 +24,8 @@ import {
   DollarSign,
   TrendingUp,
 } from "lucide-react";
+import { getSessionFromTradeDate } from "@/utils/sessionDetector";
+import { sortTradesByTime } from "@/utils/sortTrades";
 import {
   LineChart,
   Line,
@@ -37,20 +42,23 @@ import {
 export interface Trade {
   id: string;
   date: string;
-  pair: "XAUUSD" | "XAGUSD";
+  pair: "XAUUSD" | "XAGUSD" | string;
   direction: "Buy" | "Sell";
-  setupType: "Breakout" | "Reversal" | "Range" | "News";
-  lotSize: number;
+  setupType?: string;
+  lotSize?: number;
   entry: number;
   stopLoss: number;
   takeProfit: number;
   profitLoss: number;
   rrRatio: number;
-  session: "London" | "New York" | "Asian";
-  emotion: "Calm" | "Fear" | "Greedy" | "Revenge";
-  reason: string;
-  notes: string;
-  lesson: string;
+  session?: string;
+  emotion?: string;
+  reason?: string;
+  notes?: string;
+  lesson?: string;
+  balance?: number;
+  openTime?: string; // Full datetime from Positions table for sorting (e.g., "2025.10.31 21:31:42")
+  closeTime?: string;
 }
 
 export default function Index() {
@@ -59,7 +67,7 @@ export default function Index() {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Firestore real-time sync
+  // 🔄 Realtime Firestore sync
   useEffect(() => {
     if (!currentUser) return;
     const tradesRef = collection(db, "users", currentUser.uid, "trades");
@@ -68,17 +76,25 @@ export default function Index() {
         id: docSnap.id,
         ...(docSnap.data() as Omit<Trade, "id">),
       })) as Trade[];
-      setTrades(data.sort((a, b) => (b.date ?? "").localeCompare(a.date ?? "")));
+      setTrades(sortTradesByTime(data));
     });
     return unsubscribe;
   }, [currentUser]);
 
+  // ➕ Add trade manually
   const handleAddTrade = async (trade: Omit<Trade, "id">) => {
     if (!currentUser) return alert("Please log in first.");
     try {
       setLoading(true);
       const tradesRef = collection(db, "users", currentUser.uid, "trades");
-      await addDoc(tradesRef, trade);
+      
+      // Auto-detect session if not provided
+      const tradeWithSession = {
+        ...trade,
+        session: trade.session || getSessionFromTradeDate(trade.date),
+      };
+      
+      await addDoc(tradesRef, tradeWithSession);
       setShowForm(false);
     } catch (err) {
       console.error("Error adding trade:", err);
@@ -87,10 +103,21 @@ export default function Index() {
     }
   };
 
+  // ✏️ Update trade
+  const handleUpdateTrade = async (id: string, updates: Partial<Trade>) => {
+    if (!currentUser) return;
+    try {
+      const tradeRef = doc(db, "users", currentUser.uid, "trades", id);
+      await updateDoc(tradeRef, updates);
+    } catch (err) {
+      console.error("Error updating trade:", err);
+    }
+  };
+
+  // ❌ Delete trade
   const handleDeleteTrade = async (id: string) => {
     if (!currentUser) return;
-    const confirmed = confirm("Are you sure you want to delete this trade?");
-    if (!confirmed) return;
+    if (!confirm("Are you sure you want to delete this trade?")) return;
     try {
       const tradeRef = doc(db, "users", currentUser.uid, "trades", id);
       await deleteDoc(tradeRef);
@@ -99,7 +126,26 @@ export default function Index() {
     }
   };
 
-  // Metrics
+  // 🗑️ Bulk delete trades
+  const handleBulkDeleteTrades = async (ids: string[]) => {
+    if (!currentUser) return;
+    if (ids.length === 0) return;
+    
+    try {
+      // Delete all trades in parallel using Promise.all
+      await Promise.all(
+        ids.map((id) => {
+          const tradeRef = doc(db, "users", currentUser.uid, "trades", id);
+          return deleteDoc(tradeRef);
+        })
+      );
+    } catch (err) {
+      console.error("Error deleting trades:", err);
+      alert("Error deleting some trades. Please try again.");
+    }
+  };
+
+  // 📈 Metrics
   const metrics = useMemo(() => {
     const totalTrades = trades.length;
     const totalPL = trades.reduce((s, t) => s + Number(t.profitLoss || 0), 0);
@@ -122,7 +168,7 @@ export default function Index() {
     };
   }, [trades]);
 
-  // Chart Data
+  // 📊 Chart Data
   const equityData = trades
     .slice()
     .reverse()
@@ -144,12 +190,12 @@ export default function Index() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#050505] to-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       <DashboardHeader />
 
-      <main className="pt-24 pb-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* METRICS */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+      <main className="pt-24 pb-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+        {/* ===== Metrics ===== */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
             {
               title: "Total P/L",
@@ -178,11 +224,11 @@ export default function Index() {
           ].map((m, i) => (
             <div
               key={i}
-              className="p-5 rounded-2xl bg-black/50 border border-[#111] shadow-[0_0_15px_rgba(0,255,156,0.08)] hover:shadow-[0_0_25px_rgba(0,255,156,0.12)] transition-all"
+              className="p-5 rounded-2xl bg-card border border-border shadow-[0_0_15px_rgba(0,255,156,0.08)] hover:shadow-[0_0_25px_rgba(0,255,156,0.12)] transition-all"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm text-slate-400">{m.title}</h3>
+                  <h3 className="text-sm text-muted-foreground">{m.title}</h3>
                   <p
                     className="text-3xl font-semibold mt-2"
                     style={{ color: m.accent }}
@@ -203,25 +249,23 @@ export default function Index() {
           ))}
         </section>
 
-
-                {/* ADD TRADE FORM */}
-        <TradeForm
-          onSubmit={handleAddTrade}
-          showForm={showForm}
-          setShowForm={setShowForm}
-        />
-
-        {/* CHARTS */}
+        {/* ===== Charts ===== */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Equity Curve */}
-          <div className="lg:col-span-2 p-6 rounded-2xl bg-black/40 border border-[#111] backdrop-blur-md shadow-md">
+          <div className="lg:col-span-2 p-6 rounded-2xl bg-card border border-border shadow-md">
             <h2 className="text-lg font-semibold mb-5">Equity Curve</h2>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={equityData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#222" />
                 <XAxis dataKey="date" stroke="#888" />
                 <YAxis stroke="#888" />
-                <Tooltip />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    color: "hsl(var(--foreground))",
+                  }}
+                />
                 <Line
                   type="monotone"
                   dataKey="equity"
@@ -232,15 +276,21 @@ export default function Index() {
             </ResponsiveContainer>
           </div>
 
-          {/* Win/Loss */}
-          <aside className="p-6 rounded-2xl bg-black/40 border border-[#111] backdrop-blur-md shadow-md">
+          {/* Win / Loss */}
+          <aside className="p-6 rounded-2xl bg-card border border-border shadow-md">
             <h2 className="text-lg font-semibold mb-4">Win / Loss Stats</h2>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={winLossData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#222" />
                 <XAxis dataKey="name" stroke="#888" />
                 <YAxis stroke="#888" />
-                <Tooltip />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    color: "hsl(var(--foreground))",
+                  }}
+                />
                 <Legend />
                 <Bar dataKey="Wins" fill="#00FF9C" />
                 <Bar dataKey="Losses" fill="#FF5555" />
@@ -249,30 +299,48 @@ export default function Index() {
           </aside>
         </section>
 
+        {/* ===== TradeBook ===== */}
+        <section>
+          <div className="p-6 rounded-2xl bg-card border border-border shadow-md">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+              <h3 className="text-lg font-semibold">TradeBook</h3>
 
-
-                {/* SUMMARY */}
-        <div className="mt-12">
-          <TradeSummary trades={trades} />
-        </div>
-
-        {/* RECENT TRADES */}
-        <section className="mt-12">
-          <div className="p-6 rounded-2xl bg-black/40 border border-[#111] backdrop-blur-md shadow-md">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Recent Trades</h3>
-                {/* The Add Trade button is now inside the TradeForm component */}
+              <div className="flex items-center gap-3">
+                <MT5Upload /> {/* ✅ Upload Button */}
+                <button
+                  onClick={() => setShowForm(true)}
+                  className="flex items-center gap-2 bg-[#00FF9C] hover:bg-[#00cc7a] text-black font-semibold px-4 py-2 rounded-lg transition-all"
+                >
+                  <Plus size={18} /> Add Trade
+                </button>
               </div>
-            <TradeTable trades={trades} onDelete={handleDeleteTrade} />
+            </div>
+
+            <TradeTable 
+              trades={trades} 
+              onDelete={handleDeleteTrade}
+              onUpdate={handleUpdateTrade}
+              onBulkDelete={handleBulkDeleteTrades}
+            />
             {trades.length === 0 && (
-              <div className="mt-6 text-center text-slate-500">
-                No trades yet — add one to start tracking.
+              <div className="mt-6 text-center text-muted-foreground">
+                No trades yet — add one manually or import from MT5.
               </div>
             )}
           </div>
         </section>
 
+        {/* ===== Add Trade Modal ===== */}
+        <TradeForm
+          onSubmit={handleAddTrade}
+          showForm={showForm}
+          setShowForm={setShowForm}
+        />
 
+        {/* ===== Summary ===== */}
+        <div>
+          <TradeSummary trades={trades} />
+        </div>
       </main>
     </div>
   );

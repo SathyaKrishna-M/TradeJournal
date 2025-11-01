@@ -8,8 +8,14 @@ import {
   signOut,
   GoogleAuthProvider,
   signInWithPopup,
+  updateProfile,
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+  User,
 } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { handleFirebaseError } from "@/lib/firebaseErrorHandler";
 import { toast } from "@/hooks/use-toast";
 
@@ -27,6 +33,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const storage = getStorage(app);
 
 // ✅ Login with Email
 export async function loginWithEmail(email: string, password: string) {
@@ -99,6 +106,96 @@ export async function logoutUser() {
     await signOut(auth);
   } catch (error) {
     handleFirebaseError(error, "Logout");
+    throw error;
+  }
+}
+
+// ✅ Update User Profile
+export async function updateUserProfile(displayName?: string, photoURL?: string) {
+  try {
+    const user = auth.currentUser;
+    if (!user) throw new Error("No user logged in");
+
+    const updates: { displayName?: string; photoURL?: string } = {};
+    if (displayName !== undefined) updates.displayName = displayName;
+    if (photoURL !== undefined) updates.photoURL = photoURL;
+
+    await updateProfile(user, updates);
+    toast({
+      title: "✅ Profile Updated",
+      description: "Your profile has been updated successfully.",
+    });
+  } catch (error) {
+    handleFirebaseError(error, "Update Profile");
+    throw error;
+  }
+}
+
+// ✅ Sanitize filename for Firebase Storage
+function sanitizeFileName(fileName: string): string {
+  // Get file extension
+  const extension = fileName.split('.').pop() || 'jpg';
+  // Remove extension, sanitize, and add extension back
+  const nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.')) || 'image';
+  // Replace special characters with underscores
+  const sanitized = nameWithoutExt.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 50);
+  return `${sanitized}.${extension}`;
+}
+
+// ✅ Upload Profile Picture
+export async function uploadProfilePicture(file: File): Promise<string> {
+  try {
+    const user = auth.currentUser;
+    if (!user) throw new Error("No user logged in");
+
+    // Sanitize filename to avoid CORS and special character issues
+    const sanitizedName = sanitizeFileName(file.name);
+    const fileRef = ref(storage, `profile-pictures/${user.uid}/${Date.now()}_${sanitizedName}`);
+    
+    // Upload with metadata
+    const metadata = {
+      contentType: file.type,
+      customMetadata: {
+        originalName: file.name,
+      },
+    };
+    
+    await uploadBytes(fileRef, file, metadata);
+    const downloadURL = await getDownloadURL(fileRef);
+    
+    await updateProfile(user, { photoURL: downloadURL });
+    
+    toast({
+      title: "✅ Profile Picture Updated",
+      description: "Your profile picture has been updated successfully.",
+    });
+    
+    return downloadURL;
+  } catch (error) {
+    handleFirebaseError(error, "Upload Profile Picture");
+    throw error;
+  }
+}
+
+// ✅ Change Password
+export async function changeUserPassword(currentPassword: string, newPassword: string) {
+  try {
+    const user = auth.currentUser;
+    if (!user || !user.email) throw new Error("No user logged in");
+
+    // Reauthenticate user
+    const credential = EmailAuthProvider.credential(user.email, currentPassword);
+    await reauthenticateWithCredential(user, credential);
+
+    // Update password
+    await updatePassword(user, newPassword);
+    
+    toast({
+      title: "✅ Password Changed",
+      description: "Your password has been changed successfully.",
+    });
+  } catch (error) {
+    handleFirebaseError(error, "Change Password");
     throw error;
   }
 }
