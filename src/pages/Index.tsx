@@ -7,6 +7,7 @@ import { TradeForm } from "@/components/TradeForm";
 import { TradeTable } from "@/components/TradeTable";
 import { TradeSummary } from "@/components/TradeSummary";
 import { MT5Upload } from "@/components/MT5Upload";
+import { TradingCalendar } from "@/components/TradingCalendar";
  // ✅ FIXED import (was destructured incorrectly)
 import {
   collection,
@@ -149,6 +150,50 @@ export default function Index() {
   const metrics = useMemo(() => {
     const totalTrades = trades.length;
     const totalPL = trades.reduce((s, t) => s + Number(t.profitLoss || 0), 0);
+    
+    // Calculate Profit Factor
+    const grossProfit = trades
+      .filter((t) => Number(t.profitLoss) > 0)
+      .reduce((s, t) => s + Number(t.profitLoss || 0), 0);
+    const grossLoss = Math.abs(
+      trades
+        .filter((t) => Number(t.profitLoss) < 0)
+        .reduce((s, t) => s + Number(t.profitLoss || 0), 0)
+    );
+    const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? 999 : 0;
+
+    // Calculate current streak
+    const sortedTrades = [...trades].sort((a, b) => {
+      const timestampA = new Date(a.openTime || a.date).getTime();
+      const timestampB = new Date(b.openTime || b.date).getTime();
+      return timestampB - timestampA;
+    });
+
+    let winStreak = 0;
+    let lossStreak = 0;
+    for (const trade of sortedTrades) {
+      if (Number(trade.profitLoss) > 0) {
+        if (lossStreak > 0) break;
+        winStreak++;
+      } else if (Number(trade.profitLoss) < 0) {
+        if (winStreak > 0) break;
+        lossStreak++;
+      }
+    }
+
+    // Monthly stats (current month)
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const monthTrades = trades.filter((t) => {
+      const tradeDate = new Date(t.openTime || t.date);
+      return tradeDate.getMonth() === currentMonth && tradeDate.getFullYear() === currentYear;
+    });
+    const monthPL = monthTrades.reduce((s, t) => s + Number(t.profitLoss || 0), 0);
+    const tradingDays = new Set(
+      monthTrades.map((t) => new Date(t.openTime || t.date).toDateString())
+    ).size;
+
     const avgRR =
       trades.length === 0
         ? 0
@@ -160,11 +205,17 @@ export default function Index() {
         : (trades.filter((t) => Number(t.profitLoss) > 0).length /
             trades.length) *
           100;
+    
     return {
       totalTrades,
       totalPL,
       avgRR: Number(avgRR.toFixed(2)),
       winRate: Number(winRate.toFixed(1)),
+      profitFactor: Number(profitFactor.toFixed(2)),
+      winStreak,
+      lossStreak,
+      monthPL,
+      tradingDays,
     };
   }, [trades]);
 
@@ -193,60 +244,61 @@ export default function Index() {
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       <DashboardHeader />
 
-      <main className="pt-24 pb-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-        {/* ===== Metrics ===== */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[
-            {
-              title: "Total P/L",
-              value: `${metrics.totalPL >= 0 ? "+" : ""}${metrics.totalPL}`,
-              icon: <DollarSign className="w-6 h-6 text-black" />,
-              accent: metrics.totalPL >= 0 ? "#00FF9C" : "#FF5555",
-            },
-            {
-              title: "Total Trades",
-              value: metrics.totalTrades,
-              icon: <Clock className="w-6 h-6 text-black" />,
-              accent: "#00FF9C",
-            },
-            {
-              title: "Win Rate",
-              value: `${metrics.winRate}%`,
-              icon: <BarChart2 className="w-6 h-6 text-black" />,
-              accent: "#00FF9C",
-            },
-            {
-              title: "Avg R:R",
-              value: metrics.avgRR,
-              icon: <TrendingUp className="w-6 h-6 text-black" />,
-              accent: "#00FF9C",
-            },
-          ].map((m, i) => (
-            <div
-              key={i}
-              className="p-5 rounded-2xl bg-card border border-border shadow-[0_0_15px_rgba(0,255,156,0.08)] hover:shadow-[0_0_25px_rgba(0,255,156,0.12)] transition-all"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm text-muted-foreground">{m.title}</h3>
-                  <p
-                    className="text-3xl font-semibold mt-2"
-                    style={{ color: m.accent }}
-                  >
-                    {m.value}
-                  </p>
-                </div>
-                <div
-                  className="p-3 rounded-xl shadow-md"
-                  style={{
-                    background: `linear-gradient(135deg, ${m.accent}, #00c853)`,
-                  }}
-                >
-                  {m.icon}
-                </div>
+      <main className="pt-24 pb-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
+            <p className="text-muted-foreground">Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}!</p>
+          </div>
+        </div>
+
+        {/* ===== Summary Stats ===== */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Net P&L */}
+          <div className="p-5 rounded-xl bg-card border border-border">
+            <div className="text-sm text-muted-foreground mb-1">Net P&L</div>
+            <div className={`text-2xl font-bold ${metrics.totalPL >= 0 ? "text-green-400" : "text-red-400"}`}>
+              ${metrics.totalPL.toFixed(2)}
+            </div>
+          </div>
+
+          {/* Profit Factor */}
+          <div className="p-5 rounded-xl bg-card border border-border">
+            <div className="text-sm text-muted-foreground mb-1">Profit Factor</div>
+            <div className="text-2xl font-bold text-foreground">
+              {metrics.profitFactor.toFixed(2)}
+            </div>
+          </div>
+
+          {/* Current Streak */}
+          <div className="p-5 rounded-xl bg-card border border-border">
+            <div className="text-sm text-muted-foreground mb-2">Current Streak</div>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <div className="text-xs font-semibold text-green-400">{metrics.winStreak} days</div>
+                <div className="text-xs font-semibold text-red-400">{metrics.lossStreak} days</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="text-xs font-semibold text-green-400">{metrics.winStreak} trades</div>
+                <div className="text-xs font-semibold text-red-400">{metrics.lossStreak} trades</div>
               </div>
             </div>
-          ))}
+          </div>
+
+          {/* Monthly Stats */}
+          <div className="p-5 rounded-xl bg-card border border-border">
+            <div className="text-sm text-muted-foreground mb-1">Monthly Stats</div>
+            <div className={`text-xl font-bold ${metrics.monthPL >= 0 ? "text-green-400" : "text-red-400"}`}>
+              ${(metrics.monthPL / 1000).toFixed(2)}K
+            </div>
+            <div className="text-xs text-muted-foreground mt-1">{metrics.tradingDays} days</div>
+          </div>
+        </section>
+
+        {/* ===== Monthly Calendar ===== */}
+        <section className="p-6 rounded-2xl bg-card border border-border shadow-md">
+          <TradingCalendar trades={trades} />
         </section>
 
         {/* ===== Charts ===== */}
