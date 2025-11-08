@@ -61,6 +61,13 @@ export const MT5Upload: React.FC = () => {
     const tradeDate = parsed.date || new Date().toISOString().split("T")[0];
     const session = getSessionFromTradeDate(parsed.closeTime || parsed.date || tradeDate);
 
+    // Calculate net PnL including commission and swap
+    const commission = Number(parsed.commission) || 0;
+    const swap = Number(parsed.swap) || 0;
+    const grossProfitLoss = Number(parsed.profitLoss) || 0;
+    // Net PnL = Gross Profit/Loss + Commission + Swap
+    const netProfitLoss = grossProfitLoss + commission + swap;
+
     return {
       date: tradeDate,
       pair: parsed.pair || "XAUUSD",
@@ -68,7 +75,9 @@ export const MT5Upload: React.FC = () => {
       entry: entry,
       stopLoss: stopLoss,
       takeProfit: takeProfit,
-      profitLoss: Number(parsed.profitLoss) || 0,
+      profitLoss: netProfitLoss, // Store net PnL (including commission and swap)
+      commission: commission,
+      swap: swap,
       rrRatio: rrRatio || 0,
       lotSize: Number(parsed.lotSize) || 0,
       session: session,

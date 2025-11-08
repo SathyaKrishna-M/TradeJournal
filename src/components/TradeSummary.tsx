@@ -42,61 +42,69 @@ export function TradeSummary({ trades }: TradeSummaryProps) {
   }, [trades]);
 
   return (
-    <section className="p-6 rounded-2xl bg-card border border-border shadow-md transition-colors">
-      <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-        <BarChart2 className="w-5 h-5 text-[#00FF9C]" /> Trade Performance Summary
-      </h2>
+    <section className="mb-8">
+      <div className="p-6 rounded-2xl bg-[rgba(255,255,255,0.03)] backdrop-blur-sm border border-[#1a1f2e]/50 shadow-lg hover:shadow-xl transition-all duration-300">
+        <h2 className="text-xl lg:text-2xl font-semibold mb-2 flex items-center gap-2 text-white">
+          <BarChart2 className="w-5 h-5 text-[#00FF9D]" /> Trade Performance Summary
+        </h2>
+        <p className="text-xs text-gray-400 mb-6">Detailed trading analytics and insights</p>
 
-      {trades.length === 0 ? (
-        <div className="text-muted-foreground text-sm text-center py-6">
-          No trades logged yet — start journaling to see your insights here.
-        </div>
-      ) : (
-        <>
-          {/* Summary Stats Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-            <SummaryCard
-              title="Total P/L"
-              value={`${summary.totalPL >= 0 ? "+" : ""}${summary.totalPL}`}
-              icon={<TrendingUp className="text-[#00FF9C]" />}
-              accent={summary.totalPL >= 0 ? "#00FF9C" : "#FF5555"}
-            />
-            <SummaryCard
-              title="Win Rate"
-              value={`${summary.winRate}%`}
-              icon={<BarChart2 className="text-[#00FF9C]" />}
-            />
-            <SummaryCard
-              title="Avg R:R"
-              value={summary.avgRR}
-              icon={<Target className="text-[#00FF9C]" />}
-            />
-            <SummaryCard
-              title="Total Trades"
-              value={trades.length}
-              icon={<Clock className="text-[#00FF9C]" />}
-            />
+        {trades.length === 0 ? (
+          <div className="text-gray-400 text-sm text-center py-12 rounded-xl bg-[rgba(255,255,255,0.02)] border border-[#1a1f2e]/30">
+            No trades logged yet — start journaling to see your insights here.
           </div>
+        ) : (
+          <>
+            {/* Summary Stats Grid - Four cards in one row */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
+              <SummaryCard
+                title="Total P/L"
+                value={`$${summary.totalPL >= 0 ? "+" : ""}${summary.totalPL.toFixed(2)}`}
+                icon={<TrendingUp className="w-5 h-5" />}
+                accent={summary.totalPL >= 0 ? "#00FF9D" : "#FF4D4D"}
+              />
+              <SummaryCard
+                title="Win Rate"
+                value={`${summary.winRate}%`}
+                icon={<BarChart2 className="w-5 h-5" />}
+                accent="#00FF9D"
+              />
+              <SummaryCard
+                title="Avg R:R"
+                value={summary.avgRR}
+                icon={<Target className="w-5 h-5" />}
+                accent="#00FF9D"
+              />
+              <SummaryCard
+                title="Total Trades"
+                value={trades.length}
+                icon={<Clock className="w-5 h-5" />}
+                accent="#00FF9D"
+              />
+            </div>
 
-          {/* Best & Worst Trades */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {summary.bestTrade && (
-              <TradeDetailCard
-                title="🏆 Best Trade"
-                trade={summary.bestTrade}
-                color="#00FF9C"
-              />
-            )}
-            {summary.worstTrade && (
-              <TradeDetailCard
-                title="💀 Worst Trade"
-                trade={summary.worstTrade}
-                color="#FF5555"
-              />
-            )}
-          </div>
-        </>
-      )}
+            {/* Best & Worst Trades - Two equal-width cards side by side */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {summary.bestTrade && (
+                <TradeDetailCard
+                  title="Best Trade"
+                  trade={summary.bestTrade}
+                  color="#00FF9D"
+                  icon="🏆"
+                />
+              )}
+              {summary.worstTrade && (
+                <TradeDetailCard
+                  title="Worst Trade"
+                  trade={summary.worstTrade}
+                  color="#FF4D4D"
+                  icon="📉"
+                />
+              )}
+            </div>
+          </>
+        )}
+      </div>
     </section>
   );
 }
@@ -114,16 +122,29 @@ function SummaryCard({
   accent?: string;
 }) {
   return (
-    <div className="p-4 rounded-xl bg-background/50 border border-border flex flex-col items-start justify-center transition hover:bg-background/70">
-      <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-        {icon}
-        <span>{title}</span>
-      </div>
-      <div
-        className="text-2xl font-semibold"
-        style={{ color: accent || "hsl(var(--foreground))" }}
-      >
-        {value}
+    <div className="p-5 lg:p-6 rounded-xl bg-[rgba(255,255,255,0.03)] backdrop-blur-sm border border-[#1a1f2e]/50 flex flex-col items-start justify-center transition-all duration-200 hover:bg-[rgba(255,255,255,0.05)] hover:shadow-lg hover:scale-[1.02] min-h-[110px] group relative overflow-hidden">
+      {accent && (
+        <div 
+          className="absolute inset-0 bg-gradient-to-br to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
+          style={{ background: `linear-gradient(to bottom right, ${accent}1a, transparent)` }}
+        ></div>
+      )}
+      <div className="relative z-10 w-full">
+        <div className="flex items-center gap-2 text-gray-400 text-xs lg:text-sm mb-3 font-medium">
+          <span style={{ color: accent || "#9ca3af" }}>
+            {icon}
+          </span>
+          <span>{title}</span>
+        </div>
+        <div
+          className={`text-xl lg:text-2xl font-bold ${
+            accent === "#00FF9D" ? "text-[#00FF9D] drop-shadow-[0_0_10px_rgba(0,255,157,0.4)]" :
+            accent === "#FF4D4D" ? "text-[#FF4D4D] drop-shadow-[0_0_10px_rgba(255,77,77,0.4)]" :
+            "text-white"
+          }`}
+        >
+          {value}
+        </div>
       </div>
     </div>
   );
@@ -134,42 +155,45 @@ function TradeDetailCard({
   title,
   trade,
   color,
+  icon,
 }: {
   title: string;
   trade: Trade;
   color: string;
+  icon?: string;
 }) {
   return (
-    <div className="p-5 rounded-2xl bg-background/50 border border-border hover:shadow-[0_0_15px_rgba(0,255,156,0.15)] transition-all">
+    <div className="p-6 rounded-2xl bg-[rgba(255,255,255,0.03)] backdrop-blur-sm border border-[#1a1f2e]/50 hover:shadow-xl hover:scale-[1.01] transition-all duration-200 group">
       <h3
-        className="text-lg font-semibold mb-3"
+        className="text-lg font-semibold mb-4 flex items-center gap-2"
         style={{ color }}
       >
+        {icon && <span>{icon}</span>}
         {title}
       </h3>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
         <Info label="Pair" value={trade.pair} />
-        <Info label="Direction" value={trade.direction} />
+        <Info label="Direction" value={trade.direction} color={trade.direction === "Buy" ? "#00FF9D" : "#FF4D4D"} />
         <Info label="Date" value={trade.date} />
         <Info label="Session" value={trade.session ?? "N/A"} />
         <Info label="Lot Size" value={trade.lotSize ?? "-"} />
-        <Info label="P/L" value={trade.profitLoss} color={trade.profitLoss >= 0 ? "#00FF9C" : "#FF5555"} />
-        <Info label="R:R" value={trade.rrRatio} />
+        <Info label="P/L" value={`$${trade.profitLoss.toFixed(2)}`} color={trade.profitLoss >= 0 ? "#00FF9D" : "#FF4D4D"} />
+        <Info label="R:R" value={trade.rrRatio?.toFixed(2) ?? "-"} />
         <Info label="Emotion" value={trade.emotion ?? "N/A"} />
       </div>
 
       {trade.notes && (
-        <div className="mt-4 p-3 rounded-md bg-muted/30 border border-border text-sm">
-          <strong className="text-muted-foreground block mb-1">Notes:</strong>
-          <p>{trade.notes}</p>
+        <div className="mt-4 p-3 rounded-md bg-[rgba(255,255,255,0.03)] border border-[#1a1f2e]/50 text-sm">
+          <strong className="text-gray-400 block mb-1">Notes:</strong>
+          <p className="text-gray-300">{trade.notes}</p>
         </div>
       )}
 
       {trade.lesson && (
-        <div className="mt-3 p-3 rounded-md bg-muted/30 border border-border text-sm">
-          <strong className="text-muted-foreground block mb-1">Lesson:</strong>
-          <p>{trade.lesson}</p>
+        <div className="mt-3 p-3 rounded-md bg-[rgba(255,255,255,0.03)] border border-[#1a1f2e]/50 text-sm">
+          <strong className="text-gray-400 block mb-1">Lesson:</strong>
+          <p className="text-gray-300">{trade.lesson}</p>
         </div>
       )}
     </div>
@@ -188,10 +212,10 @@ function Info({
 }) {
   return (
     <div className="flex flex-col">
-      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-xs text-gray-400 mb-1 font-medium">{label}</span>
       <span
-        className="font-medium"
-        style={{ color: color || "hsl(var(--foreground))" }}
+        className="font-semibold text-base"
+        style={{ color: color || "#ffffff" }}
       >
         {value}
       </span>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useTheme } from "next-themes";
 import { Trade } from "@/pages/Index";
 import { Edit2, Trash2, X, Save } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -13,6 +14,8 @@ interface TradeTableProps {
 }
 
 export function TradeTable({ trades, onDelete, onUpdate, onBulkDelete }: TradeTableProps) {
+  const { theme, resolvedTheme } = useTheme();
+  const isDark = (theme ?? resolvedTheme) === "dark";
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingEmotion, setEditingEmotion] = useState<string>("");
   const [selectedTrades, setSelectedTrades] = useState<Set<string>>(new Set());
@@ -89,7 +92,11 @@ export function TradeTable({ trades, onDelete, onUpdate, onBulkDelete }: TradeTa
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border border-border"
+          className={`flex items-center justify-between p-4 rounded-lg border ${
+            isDark 
+              ? 'bg-[#111111] border-[rgba(255,255,255,0.08)]' 
+              : 'bg-white border-[rgba(0,0,0,0.1)]'
+          }`}
         >
           <div className="flex items-center gap-4">
             <label className="flex items-center gap-2 cursor-pointer">
@@ -97,9 +104,13 @@ export function TradeTable({ trades, onDelete, onUpdate, onBulkDelete }: TradeTa
                 type="checkbox"
                 checked={selectedTrades.size === trades.length && trades.length > 0}
                 onChange={handleSelectAll}
-                className="w-4 h-4 rounded border-border"
+                className={`w-4 h-4 rounded border ${
+                  isDark 
+                    ? 'border-[rgba(255,255,255,0.15)] bg-[#0D0D0D]' 
+                    : 'border-[rgba(0,0,0,0.2)] bg-white'
+                }`}
               />
-              <span className="text-sm font-medium">
+              <span className={`text-sm font-medium ${isDark ? 'text-[#EAEAEA]' : 'text-[#111111]'}`}>
                 Select All ({selectedTrades.size} selected)
               </span>
             </label>
@@ -108,7 +119,7 @@ export function TradeTable({ trades, onDelete, onUpdate, onBulkDelete }: TradeTa
             <button
               onClick={handleBulkDelete}
               disabled={selectedTrades.size === 0}
-              className="flex items-center gap-2 px-4 py-2 bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-[#FF4D4D] text-white rounded-lg hover:bg-[#FF6B6B] disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-semibold"
             >
               <Trash2 className="w-4 h-4" />
               Delete Selected ({selectedTrades.size})
@@ -118,7 +129,11 @@ export function TradeTable({ trades, onDelete, onUpdate, onBulkDelete }: TradeTa
                 setIsBulkMode(false);
                 setSelectedTrades(new Set());
               }}
-              className="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors"
+              className={`px-4 py-2 border rounded-lg transition-colors ${
+                isDark 
+                  ? 'border-[rgba(255,255,255,0.15)] hover:bg-[#1A1A1A] text-[#EAEAEA]' 
+                  : 'border-[rgba(0,0,0,0.2)] hover:bg-gray-100 text-[#111111]'
+              }`}
             >
               Cancel
             </button>
@@ -127,103 +142,142 @@ export function TradeTable({ trades, onDelete, onUpdate, onBulkDelete }: TradeTa
       )}
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-xl border border-border bg-card">
-        <div className="flex items-center justify-between p-4 border-b border-border">
-          <h4 className="font-semibold">Trades ({trades.length})</h4>
+      <div className="overflow-hidden rounded-xl border dark:border-[rgba(255,255,255,0.08)] border-[rgba(0,0,0,0.1)] dark:bg-gradient-to-b dark:from-[#111111] dark:to-[#151515] bg-white">
+        <div className="flex items-center justify-between p-5 border-b dark:border-[rgba(255,255,255,0.08)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.03)] bg-gray-50">
+          <h4 className="font-semibold text-lg dark:text-[#EAEAEA] text-[#111111]">TradeBook ({trades.length})</h4>
           {!isBulkMode && (
             <button
               onClick={() => setIsBulkMode(true)}
-              className="text-sm px-3 py-1.5 border border-border rounded-lg hover:bg-muted transition-colors"
+              className={`text-sm px-4 py-2 border rounded-lg transition-colors ${
+                isDark 
+                  ? 'border-[rgba(255,255,255,0.15)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[#00FF99]/30 text-[#A0A0A0] hover:text-white' 
+                  : 'border-[rgba(0,0,0,0.2)] hover:bg-gray-100 hover:border-[#00C26D]/30 text-[#666666] hover:text-[#111111]'
+              }`}
             >
               Bulk Delete
             </button>
           )}
         </div>
-        <table className="min-w-full text-sm text-left">
-          <thead className="text-gray-500 border-b border-border bg-muted/30">
-            <tr>
+        <div className="overflow-x-auto max-h-[650px] overflow-y-auto w-full">
+          <table className="min-w-full text-sm text-left">
+            <thead className="sticky top-0 z-10 dark:text-[#A0A0A0] text-[#666666] border-b dark:border-[rgba(255,255,255,0.08)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(13,13,13,0.95)] bg-white backdrop-blur-sm">
+              <tr>
               {isBulkMode && (
-                <th className="p-3 font-semibold">
+                <th className="p-4 font-medium">
                   <input
                     type="checkbox"
                     checked={selectedTrades.size === trades.length && trades.length > 0}
                     onChange={handleSelectAll}
-                    className="w-4 h-4 rounded border-border"
+                    className={`w-4 h-4 rounded border ${
+                      isDark 
+                        ? 'border-[rgba(255,255,255,0.15)] bg-[#0D0D0D]' 
+                        : 'border-[rgba(0,0,0,0.2)] bg-white'
+                    }`}
                   />
                 </th>
               )}
-              <th className="p-3 font-semibold">Date</th>
-              <th className="p-3 font-semibold">Pair</th>
-              <th className="p-3 font-semibold">Dir</th>
-              <th className="p-3 font-semibold">Entry</th>
-              <th className="p-3 font-semibold">SL</th>
-              <th className="p-3 font-semibold">TP</th>
-              <th className="p-3 font-semibold">P/L</th>
-              <th className="p-3 font-semibold">RR</th>
-              <th className="p-3 font-semibold">Session</th>
-              <th className="p-3 font-semibold">Emotion</th>
-              <th className="p-3 font-semibold">Notes</th>
-              <th className="p-3 font-semibold">Actions</th>
+              <th className="p-4 font-semibold dark:text-[#A0A0A0] text-[#666666]">Date</th>
+              <th className="p-4 font-semibold dark:text-[#A0A0A0] text-[#666666]">Pair</th>
+              <th className="p-4 font-semibold dark:text-[#A0A0A0] text-[#666666]">Dir</th>
+              <th className="p-4 font-semibold dark:text-[#A0A0A0] text-[#666666]">Entry</th>
+              <th className="p-4 font-semibold dark:text-[#A0A0A0] text-[#666666]">SL</th>
+              <th className="p-4 font-semibold dark:text-[#A0A0A0] text-[#666666]">TP</th>
+              <th className="p-4 font-semibold dark:text-[#A0A0A0] text-[#666666]">P/L</th>
+              <th className="p-4 font-semibold dark:text-[#A0A0A0] text-[#666666]">Commission</th>
+              <th className="p-4 font-semibold dark:text-[#A0A0A0] text-[#666666]">Swap</th>
+              <th className="p-4 font-semibold dark:text-[#A0A0A0] text-[#666666]">RR</th>
+              <th className="p-4 font-semibold dark:text-[#A0A0A0] text-[#666666]">Session</th>
+              <th className="p-4 font-semibold dark:text-[#A0A0A0] text-[#666666]">Emotion</th>
+              <th className="p-4 font-semibold dark:text-[#A0A0A0] text-[#666666]">Notes</th>
+              <th className="p-4 font-semibold dark:text-[#A0A0A0] text-[#666666]">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {trades.map((trade) => (
+            {trades.map((trade, index) => (
               <tr
                 key={trade.id}
-                className={`group border-b border-border hover:bg-muted/30 transition ${
-                  selectedTrades.has(trade.id) ? "bg-muted/50" : ""
+                className={`group border-b transition-colors ${
+                  isDark 
+                    ? `border-[rgba(255,255,255,0.05)] ${index % 2 === 0 ? "bg-[#111111]" : "bg-[#0D0D0D]"} hover:bg-[rgba(0,255,153,0.05)] hover:border-[rgba(0,255,153,0.2)]`
+                    : `border-[rgba(0,0,0,0.05)] ${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-gray-100`
+                } ${
+                  selectedTrades.has(trade.id) ? (isDark ? "bg-[rgba(0,255,153,0.1)]" : "bg-[rgba(0,194,109,0.1)]") : ""
                 }`}
               >
                 {isBulkMode && (
-                  <td className="p-3">
+                  <td className="p-4">
                     <input
                       type="checkbox"
                       checked={selectedTrades.has(trade.id)}
                       onChange={() => handleToggleSelect(trade.id)}
-                      className="w-4 h-4 rounded border-border"
+                      className={`w-4 h-4 rounded border ${
+                        isDark 
+                          ? 'border-[rgba(255,255,255,0.15)] bg-[#0D0D0D]' 
+                          : 'border-[rgba(0,0,0,0.2)] bg-white'
+                      }`}
                     />
                   </td>
                 )}
-                <td className="p-3 text-foreground">{trade.date}</td>
-                <td className="p-3">{trade.pair}</td>
+                <td className={`p-4 font-medium ${isDark ? 'text-[#EAEAEA]' : 'text-[#111111]'}`}>{trade.date}</td>
+                <td className={`p-4 font-medium ${isDark ? 'text-[#EAEAEA]' : 'text-[#111111]'}`}>{trade.pair}</td>
                 <td
-                  className={`p-3 font-semibold ${
-                    trade.direction === "Buy" ? "text-green-500" : "text-red-400"
+                  className={`p-4 font-semibold ${
+                    trade.direction === "Buy" 
+                      ? (isDark ? "text-[#00FF99]" : "text-[#00C26D]")
+                      : "text-[#FF4D4D]"
                   }`}
                 >
                   {trade.direction}
                 </td>
-                <td className="p-3">{trade.entry}</td>
-                <td className="p-3">{trade.stopLoss}</td>
-                <td className="p-3">{trade.takeProfit}</td>
+                <td className={`p-4 ${isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}`}>{trade.entry.toFixed(2)}</td>
+                <td className={`p-4 ${isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}`}>{trade.stopLoss ? trade.stopLoss.toFixed(2) : "-"}</td>
+                <td className={`p-4 ${isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}`}>{trade.takeProfit ? trade.takeProfit.toFixed(2) : "-"}</td>
                 <td
-                  className={`p-3 font-semibold ${
+                  className={`p-4 font-bold ${
                     trade.profitLoss > 0
-                      ? "text-green-400"
+                      ? isDark
+                        ? "text-[#00FF99] drop-shadow-[0_0_8px_rgba(0,255,153,0.3)]"
+                        : "text-[#00C26D]"
                       : trade.profitLoss < 0
-                      ? "text-red-400"
-                      : "text-gray-400"
+                      ? "text-[#FF4D4D] drop-shadow-[0_0_8px_rgba(255,77,77,0.3)]"
+                      : isDark
+                      ? "text-[#A0A0A0]"
+                      : "text-[#666666]"
                   }`}
                 >
-                  {trade.profitLoss}
+                  ${trade.profitLoss.toFixed(2)}
                 </td>
-                <td className="p-3">{trade.rrRatio ? trade.rrRatio.toFixed(2) : "-"}</td>
-                <td className="p-3">
-                  <span className="px-2 py-1 rounded text-xs bg-primary/20 text-primary">
+                <td className={`p-4 text-xs ${isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}`}>
+                  {trade.commission !== undefined ? `$${trade.commission.toFixed(2)}` : "-"}
+                </td>
+                <td className={`p-4 text-xs ${isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}`}>
+                  {trade.swap !== undefined ? `$${trade.swap.toFixed(2)}` : "-"}
+                </td>
+                <td className={`p-4 ${isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}`}>{trade.rrRatio ? trade.rrRatio.toFixed(2) : "-"}</td>
+                <td className="p-4">
+                  <span className={`px-2.5 py-1 rounded-md text-xs font-medium border ${
+                    isDark 
+                      ? 'bg-[#00FF99]/10 text-[#00FF99] border-[#00FF99]/30'
+                      : 'bg-[#00C26D]/10 text-[#00C26D] border-[#00C26D]/30'
+                  }`}>
                     {trade.session || "-"}
                   </span>
                 </td>
-                <td className="p-3">
+                <td className="p-4">
                   {editingId === trade.id ? (
                     <div className="flex items-center gap-2">
                       <select
                         value={editingEmotion}
                         onChange={(e) => setEditingEmotion(e.target.value)}
-                        className="px-2 py-1 text-xs rounded border border-border bg-background"
+                        className={`px-2 py-1 text-xs rounded border focus:outline-none focus:ring-2 ${
+                          isDark 
+                            ? 'border-[rgba(255,255,255,0.15)] bg-[#0D0D0D] text-[#EAEAEA] hover:bg-[#1A1A1A] focus:ring-[#00FF99]/50' 
+                            : 'border-[rgba(0,0,0,0.2)] bg-white text-[#111111] hover:bg-gray-50 focus:ring-[#00C26D]/50'
+                        }`}
                         autoFocus
                       >
                         {emotionOptions.map((emotion) => (
-                          <option key={emotion} value={emotion}>
+                          <option key={emotion} value={emotion} className={isDark ? "bg-[#0D0D0D] text-[#EAEAEA]" : "bg-white text-[#111111]"}>
                             {emotion}
                           </option>
                         ))}
@@ -245,30 +299,43 @@ export function TradeTable({ trades, onDelete, onUpdate, onBulkDelete }: TradeTa
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <span className={trade.emotion ? "" : "text-muted-foreground"}>
+                      <span className={trade.emotion ? (isDark ? "text-[#EAEAEA]" : "text-[#111111]") : (isDark ? "text-[#A0A0A0]" : "text-[#666666]")}>
                         {trade.emotion || "-"}
                       </span>
                       {onUpdate && !editingId && (
                         <button
                           onClick={() => handleEdit(trade)}
-                          className="p-1 hover:bg-muted rounded transition-all opacity-0 group-hover:opacity-100"
+                          className="p-1 hover:bg-[rgba(255,255,255,0.1)] rounded transition-all opacity-0 group-hover:opacity-100"
                           title="Edit emotion"
                         >
-                          <Edit2 className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+                          <Edit2 className="w-3 h-3 text-gray-400 hover:text-white" />
                         </button>
                       )}
                     </div>
                   )}
                 </td>
-                <td className="p-3 max-w-[160px] truncate">{trade.notes || "-"}</td>
-                <td className="p-3">
+                <td className="p-4 max-w-[200px]">
+                  <div className={`truncate ${isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}`} title={trade.notes || undefined}>
+                    {trade.notes ? (
+                      trade.notes.includes("Imported from MT5") ? (
+                        <span className={`text-xs ${isDark ? 'text-[#6A6A6A]' : 'text-[#999999]'}`}>MT5 Import</span>
+                      ) : (
+                        trade.notes
+                      )
+                    ) : (
+                      "-"
+                    )}
+                  </div>
+                </td>
+                <td className="p-4">
                   {!isBulkMode && (
                     <button
                       onClick={() => onDelete(trade.id)}
-                      className="text-red-400 hover:text-red-500 font-semibold transition flex items-center gap-1"
+                      className="text-[#FF4D4D] hover:text-[#FF6B6B] font-medium transition-colors flex items-center gap-1.5 opacity-0 group-hover:opacity-100"
+                      title="Delete trade"
                     >
                       <Trash2 className="w-4 h-4" />
-                      Delete
+                      <span className="text-xs">Delete</span>
                     </button>
                   )}
                 </td>
@@ -276,6 +343,7 @@ export function TradeTable({ trades, onDelete, onUpdate, onBulkDelete }: TradeTa
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

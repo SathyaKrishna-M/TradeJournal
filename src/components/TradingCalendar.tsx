@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { useTheme } from "next-themes";
 import { Trade } from "@/pages/Index";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -19,6 +20,8 @@ interface TradingCalendarProps {
 }
 
 export function TradingCalendar({ trades }: TradingCalendarProps) {
+  const { theme, resolvedTheme } = useTheme();
+  const isDark = (theme ?? resolvedTheme) === "dark";
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<DailyStats | null>(null);
 
@@ -173,19 +176,29 @@ export function TradingCalendar({ trades }: TradingCalendarProps) {
     <div className="space-y-4">
       {/* Calendar Header */}
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 lg:gap-4">
           <button
             onClick={() => navigateMonth("prev")}
-            className="p-2 hover:bg-muted rounded-lg transition-colors"
+            className={`p-2 rounded-lg transition-colors ${
+              isDark 
+                ? 'hover:bg-[rgba(255,255,255,0.05)] text-[#A0A0A0] hover:text-[#EAEAEA]' 
+                : 'hover:bg-gray-100 text-[#666666] hover:text-[#111111]'
+            }`}
+            aria-label="Previous month"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <h2 className="text-2xl font-bold">
+          <h2 className={`text-lg lg:text-xl font-semibold ${isDark ? 'text-[#EAEAEA]' : 'text-[#111111]'}`}>
             {monthNames[currentMonth]} {currentYear}
           </h2>
           <button
             onClick={() => navigateMonth("next")}
-            className="p-2 hover:bg-muted rounded-lg transition-colors"
+            className={`p-2 rounded-lg transition-colors ${
+              isDark 
+                ? 'hover:bg-[rgba(255,255,255,0.05)] text-[#A0A0A0] hover:text-[#EAEAEA]' 
+                : 'hover:bg-gray-100 text-[#666666] hover:text-[#111111]'
+            }`}
+            aria-label="Next month"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
@@ -196,7 +209,7 @@ export function TradingCalendar({ trades }: TradingCalendarProps) {
       <div className="grid grid-cols-7 gap-2 mb-6">
         {/* Day headers */}
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-          <div key={day} className="p-2 text-center text-sm font-semibold text-muted-foreground">
+          <div key={day} className={`p-2 text-center text-sm font-semibold ${isDark ? 'text-[#9A9A9A]' : 'text-[#666666]'}`}>
             {day}
           </div>
         ))}
@@ -213,30 +226,34 @@ export function TradingCalendar({ trades }: TradingCalendarProps) {
               key={index}
               onClick={() => handleDayClick(stats)}
               className={`
-                relative p-2 rounded-lg border transition-all min-h-[100px]
+                relative p-3 rounded-lg border transition-all min-h-[100px] text-left
                 ${!isCurrentMonth ? "opacity-30" : ""}
-                ${isToday ? "ring-2 ring-[#00FF9C]" : ""}
+                ${isToday ? (isDark ? "ring-2 ring-[#00FF99] ring-opacity-60" : "ring-2 ring-[#00C26D] ring-opacity-60") : ""}
                 ${hasTrades 
                   ? stats.pnl > 0 
-                    ? "bg-green-500/20 border-green-500/50 hover:bg-green-500/30" 
-                    : "bg-red-500/20 border-red-500/50 hover:bg-red-500/30"
-                  : "bg-card border-border hover:bg-muted/50"
+                    ? isDark
+                      ? "bg-gradient-to-br from-[rgba(0,255,153,0.25)] to-[rgba(0,255,102,0.05)] border-[#00FF99]/40 hover:from-[rgba(0,255,153,0.3)] hover:to-[rgba(0,255,102,0.1)] hover:border-[#00FF99]/50 hover:shadow-[0_0_8px_rgba(0,255,153,0.3)]"
+                      : "bg-gradient-to-br from-[rgba(0,194,109,0.15)] to-[rgba(0,153,85,0.05)] border-[#00C26D]/30 hover:from-[rgba(0,194,109,0.2)] hover:to-[rgba(0,153,85,0.1)] hover:border-[#00C26D]/40 hover:shadow-md"
+                    : "bg-gradient-to-br from-[rgba(255,77,77,0.15)] to-[rgba(204,51,51,0.05)] border-[#FF4D4D]/30 hover:from-[rgba(255,77,77,0.2)] hover:to-[rgba(204,51,51,0.1)] hover:border-[#FF4D4D]/40 hover:shadow-[0_0_8px_rgba(255,77,77,0.2)]"
+                  : isDark
+                    ? "bg-[#0D0D0D] border-[rgba(255,255,255,0.08)] hover:bg-[#1A1A1A] hover:border-[rgba(255,255,255,0.12)]"
+                    : "bg-gray-50 border-[rgba(0,0,0,0.1)] hover:bg-gray-100 hover:border-[rgba(0,0,0,0.15)]"
                 }
               `}
             >
-              <div className="text-left space-y-1">
-                <div className={`text-sm font-semibold ${isCurrentMonth ? "" : "text-muted-foreground"}`}>
+              <div className="space-y-1.5">
+                <div className={`text-sm font-semibold ${isCurrentMonth ? (isDark ? "text-[#EAEAEA]" : "text-[#111111]") : (isDark ? "text-[#4A4A4A]" : "text-[#999999]")}`}>
                   {day.date.getDate()}
                 </div>
                 {hasTrades && stats && (
                   <>
-                    <div className={`text-xs font-semibold ${stats.pnl >= 0 ? "text-green-400" : "text-red-400"}`}>
+                    <div className={`text-xs font-bold ${stats.pnl >= 0 ? (isDark ? "text-[#00FF99]" : "text-[#00C26D]") : "text-[#FF4D4D]"}`}>
                       {formatCurrency(stats.pnl)}
                     </div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className={`text-xs ${isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}`}>
                       {stats.tradeCount} {stats.tradeCount === 1 ? "trade" : "trades"}
                     </div>
-                    <div className="text-xs text-muted-foreground">
+                    <div className={`text-xs ${isDark ? 'text-[#6A6A6A]' : 'text-[#999999]'}`}>
                       {stats.avgR.toFixed(2)}R, {stats.winRate.toFixed(1)}%
                     </div>
                   </>
@@ -251,12 +268,16 @@ export function TradingCalendar({ trades }: TradingCalendarProps) {
       {weeklySummaries.length > 0 && (
         <div className="mt-6 grid grid-cols-5 gap-2">
           {weeklySummaries.map((week, index) => (
-            <div key={index} className="p-3 rounded-lg bg-card border border-border">
-              <div className="text-xs text-muted-foreground mb-1">Week {week.week}</div>
-              <div className={`text-sm font-semibold ${week.pnl >= 0 ? "text-green-400" : "text-red-400"}`}>
+            <div key={index} className={`p-3 rounded-lg border ${
+              isDark 
+                ? 'bg-[#0D0D0D] border-[rgba(255,255,255,0.08)]' 
+                : 'bg-gray-50 border-[rgba(0,0,0,0.1)]'
+            }`}>
+              <div className={`text-xs mb-1 ${isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}`}>Week {week.week}</div>
+              <div className={`text-sm font-semibold ${week.pnl >= 0 ? (isDark ? "text-[#00FF99]" : "text-[#00C26D]") : "text-[#FF4D4D]"}`}>
                 {formatCurrency(week.pnl)}
               </div>
-              <div className="text-xs text-muted-foreground">{week.days} days</div>
+              <div className={`text-xs ${isDark ? 'text-[#6A6A6A]' : 'text-[#999999]'}`}>{week.days} days</div>
             </div>
           ))}
         </div>
@@ -277,10 +298,14 @@ export function TradingCalendar({ trades }: TradingCalendarProps) {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-card rounded-2xl border border-border p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+              className={`backdrop-blur-md rounded-2xl border p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto shadow-2xl ${
+                isDark 
+                  ? 'bg-[#111111] border-[#2A2A2A]' 
+                  : 'bg-white border-[rgba(0,0,0,0.1)]'
+              }`}
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-2xl font-bold">
+                <h3 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-[#111111]'}`}>
                   {new Date(selectedDay.date).toLocaleDateString("en-US", {
                     weekday: "long",
                     year: "numeric",
@@ -290,7 +315,11 @@ export function TradingCalendar({ trades }: TradingCalendarProps) {
                 </h3>
                 <button
                   onClick={() => setSelectedDay(null)}
-                  className="p-2 hover:bg-muted rounded-lg transition-colors"
+                  className={`p-2 rounded-lg transition-colors ${
+                    isDark 
+                      ? 'hover:bg-[#1A1A1A] text-[#9A9A9A] hover:text-white' 
+                      : 'hover:bg-gray-100 text-[#666666] hover:text-[#111111]'
+                  }`}
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -298,50 +327,74 @@ export function TradingCalendar({ trades }: TradingCalendarProps) {
 
               {/* Day Summary */}
               <div className="grid grid-cols-4 gap-4 mb-6">
-                <div className="p-4 rounded-lg bg-muted/30">
-                  <div className="text-xs text-muted-foreground mb-1">P&L</div>
-                  <div className={`text-lg font-bold ${selectedDay.pnl >= 0 ? "text-green-400" : "text-red-400"}`}>
+                <div className={`p-4 rounded-lg border ${
+                  isDark 
+                    ? 'bg-[#0D0D0D] border-[#2A2A2A]' 
+                    : 'bg-gray-50 border-[rgba(0,0,0,0.1)]'
+                }`}>
+                  <div className={`text-xs mb-1 ${isDark ? 'text-[#9A9A9A]' : 'text-[#666666]'}`}>P&L</div>
+                  <div className={`text-lg font-bold ${selectedDay.pnl >= 0 ? (isDark ? "text-[#00FF99]" : "text-[#00C26D]") : "text-[#FF4D4D]"}`}>
                     {formatCurrency(selectedDay.pnl)}
                   </div>
                 </div>
-                <div className="p-4 rounded-lg bg-muted/30">
-                  <div className="text-xs text-muted-foreground mb-1">Trades</div>
-                  <div className="text-lg font-bold">{selectedDay.tradeCount}</div>
+                <div className={`p-4 rounded-lg border ${
+                  isDark 
+                    ? 'bg-[#0D0D0D] border-[#2A2A2A]' 
+                    : 'bg-gray-50 border-[rgba(0,0,0,0.1)]'
+                }`}>
+                  <div className={`text-xs mb-1 ${isDark ? 'text-[#9A9A9A]' : 'text-[#666666]'}`}>Trades</div>
+                  <div className={`text-lg font-bold ${isDark ? 'text-white' : 'text-[#111111]'}`}>{selectedDay.tradeCount}</div>
                 </div>
-                <div className="p-4 rounded-lg bg-muted/30">
-                  <div className="text-xs text-muted-foreground mb-1">Win Rate</div>
-                  <div className="text-lg font-bold">{selectedDay.winRate.toFixed(1)}%</div>
+                <div className={`p-4 rounded-lg border ${
+                  isDark 
+                    ? 'bg-[#0D0D0D] border-[#2A2A2A]' 
+                    : 'bg-gray-50 border-[rgba(0,0,0,0.1)]'
+                }`}>
+                  <div className={`text-xs mb-1 ${isDark ? 'text-[#9A9A9A]' : 'text-[#666666]'}`}>Win Rate</div>
+                  <div className={`text-lg font-bold ${isDark ? 'text-white' : 'text-[#111111]'}`}>{selectedDay.winRate.toFixed(1)}%</div>
                 </div>
-                <div className="p-4 rounded-lg bg-muted/30">
-                  <div className="text-xs text-muted-foreground mb-1">Avg R</div>
-                  <div className="text-lg font-bold">{selectedDay.avgR.toFixed(2)}R</div>
+                <div className={`p-4 rounded-lg border ${
+                  isDark 
+                    ? 'bg-[#0D0D0D] border-[#2A2A2A]' 
+                    : 'bg-gray-50 border-[rgba(0,0,0,0.1)]'
+                }`}>
+                  <div className={`text-xs mb-1 ${isDark ? 'text-[#9A9A9A]' : 'text-[#666666]'}`}>Avg R</div>
+                  <div className={`text-lg font-bold ${isDark ? 'text-white' : 'text-[#111111]'}`}>{selectedDay.avgR.toFixed(2)}R</div>
                 </div>
               </div>
 
               {/* Trade List */}
               <div className="space-y-2">
-                <h4 className="font-semibold mb-3">Trades</h4>
+                <h4 className={`font-semibold mb-3 ${isDark ? 'text-white' : 'text-[#111111]'}`}>Trades</h4>
                 {selectedDay.trades.map((trade) => (
                   <div
                     key={trade.id}
-                    className="p-3 rounded-lg border border-border bg-muted/20"
+                    className={`p-3 rounded-lg border ${
+                      isDark 
+                        ? 'border-[#2A2A2A] bg-[#0D0D0D]' 
+                        : 'border-[rgba(0,0,0,0.1)] bg-gray-50'
+                    }`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <span className="font-semibold">{trade.pair}</span>
+                        <span className={`font-semibold ${isDark ? 'text-white' : 'text-[#111111]'}`}>{trade.pair}</span>
                         <span className={`text-sm font-semibold ${
-                          trade.direction === "Buy" ? "text-green-500" : "text-red-400"
+                          trade.direction === "Buy" 
+                            ? (isDark ? "text-[#00FF99]" : "text-[#00C26D]")
+                            : "text-[#FF4D4D]"
                         }`}>
                           {trade.direction}
                         </span>
                       </div>
                       <div className={`font-semibold ${
-                        trade.profitLoss >= 0 ? "text-green-400" : "text-red-400"
+                        trade.profitLoss >= 0 
+                          ? (isDark ? "text-[#00FF99]" : "text-[#00C26D]")
+                          : "text-[#FF4D4D]"
                       }`}>
                         {formatCurrency(trade.profitLoss)}
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                    <div className={`flex items-center gap-4 mt-2 text-xs ${isDark ? 'text-[#9A9A9A]' : 'text-[#666666]'}`}>
                       <span>Entry: {trade.entry}</span>
                       <span>R:R: {trade.rrRatio?.toFixed(2) || "-"}</span>
                       {trade.session && <span>Session: {trade.session}</span>}
