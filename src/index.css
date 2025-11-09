@@ -2,15 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ========== DESIGN SYSTEM ==========
-   All colors defined in HSL.
+/* ========== DEPTH-DRIVEN DESIGN SYSTEM ==========
+   Layer-based depth system with light and shadow realism
 ==================================== */
 
 @layer base {
-  /* 🌞 LIGHT THEME */
+  /* ========== TYPOGRAPHY SYSTEM ========== */
+  :root {
+    --font-heading: 'Satoshi', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  /* 🌞 LIGHT THEME - Depth Variables */
   :root {
     --background: 0 0% 100%;
     --foreground: 0 0% 10%;
+
+    /* Light Mode - Layered Background Shades */
+    --bg-base: #F9FAFB;
+    --bg-layer-1: #FFFFFF;
+    --bg-layer-2: #F2F2F2;
+    --bg-layer-3: #E8E8E8;
+    
+    /* Light Mode - Card Layers */
+    --card-base: #FFFFFF;
+    --card-mid: #F8F8F8;
+    --card-top: #F2F2F2;
+    --card-glow: rgba(255, 255, 255, 0.8);
+    
+    /* Light Mode - Shadows */
+    --shadow-top-light: rgba(255, 255, 255, 0.9);
+    --shadow-top-glow: rgba(255, 255, 255, 0.05);
+    --shadow-bottom: rgba(0, 0, 0, 0.15);
+    --shadow-bottom-deep: rgba(0, 0, 0, 0.25);
+    --shadow-inset-light: rgba(255, 255, 255, 0.8);
+    --shadow-inset-dark: rgba(0, 0, 0, 0.05);
+    
+    /* Light Mode - Borders & Glows */
+    --border-base: rgba(0, 0, 0, 0.08);
+    --border-elevated: rgba(0, 0, 0, 0.12);
+    --glow-accent: rgba(0, 194, 109, 0.15);
+    --glow-accent-strong: rgba(0, 194, 109, 0.3);
+    
+    /* Light Mode - Typography Colors */
+    --text-primary: #0D0D0D;
+    --text-secondary: #4A4A4A;
+    --text-muted: #888888;
 
     --card: 0 0% 98%;
     --card-foreground: 0 0% 10%;
@@ -49,10 +86,41 @@
     --chart-5: 340 75% 55%;
   }
 
-  /* 🌚 DARK THEME - FundingPips Style */
+  /* 🌚 DARK THEME - Depth Variables */
   .dark {
     --background: 215 28% 7%;
     --foreground: 0 0% 95%;
+
+    /* Dark Mode - Layered Background Shades */
+    --bg-base: #0A0A0A;
+    --bg-layer-1: #121212;
+    --bg-layer-2: #181818;
+    --bg-layer-3: #1F1F1F;
+    
+    /* Dark Mode - Card Layers */
+    --card-base: #121212;
+    --card-mid: #151515;
+    --card-top: #181818;
+    --card-glow: rgba(255, 255, 255, 0.03);
+    
+    /* Dark Mode - Shadows */
+    --shadow-top-light: rgba(255, 255, 255, 0.05);
+    --shadow-top-glow: rgba(255, 255, 255, 0.06);
+    --shadow-bottom: rgba(0, 0, 0, 0.4);
+    --shadow-bottom-deep: rgba(0, 0, 0, 0.8);
+    --shadow-inset-light: rgba(255, 255, 255, 0.05);
+    --shadow-inset-dark: rgba(0, 0, 0, 0.3);
+    
+    /* Dark Mode - Borders & Glows */
+    --border-base: rgba(255, 255, 255, 0.08);
+    --border-elevated: rgba(255, 255, 255, 0.12);
+    --glow-accent: rgba(0, 255, 153, 0.15);
+    --glow-accent-strong: rgba(0, 255, 153, 0.4);
+    
+    /* Dark Mode - Typography Colors */
+    --text-primary: #FFFFFF;
+    --text-secondary: rgba(255, 255, 255, 0.7);
+    --text-muted: rgba(255, 255, 255, 0.45);
 
     --card: 215 28% 9%;
     --card-foreground: 0 0% 95%;
@@ -92,18 +160,66 @@
   body {
     @apply bg-background text-foreground transition-colors duration-300;
     font-feature-settings: "rlig" 1, "calt" 1;
-    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+  }
+  
+  /* Typography Hierarchy */
+  h1, h2, h3, h4, h5, h6,
+  .font-heading,
+  .metric-value,
+  .chart-title {
+    font-family: var(--font-heading);
+    letter-spacing: -0.02em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  p, span, label, .font-body,
+  .label-text,
+  .body-text {
+    font-family: var(--font-body);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Heading Styles */
+  h1 {
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  
+  h2, h3 {
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+  
+  /* Metric Value Styles */
+  .metric-value {
+    font-weight: 600;
+    letter-spacing: -0.2px;
+  }
+  
+  /* Label Styles */
+  .label-text {
+    font-weight: 400;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  /* Light theme background - Depth Layered */
+  :root body {
+    background: linear-gradient(180deg, var(--bg-base) 0%, var(--bg-layer-1) 100%);
     min-height: 100vh;
   }
 
-  /* Light theme background */
-  :root body {
-    background: #F9FAFB;
-  }
-
-  /* Dark theme background */
+  /* Dark theme background - Depth Layered */
   .dark body {
-    background: linear-gradient(180deg, #000000 0%, #0A0A0A 100%);
+    background: linear-gradient(180deg, var(--bg-base) 0%, var(--bg-layer-1) 100%);
+    min-height: 100vh;
   }
 
   * {
@@ -164,5 +280,194 @@
 
   .animate-fadeIn {
     animation: fadeIn 0.3s ease-out;
+  }
+}
+
+/* ========== DEPTH UTILITY CLASSES ========== */
+
+@layer utilities {
+  /* Depth Layers - Card Elevation System */
+  .depth-layer-0 {
+    background: linear-gradient(180deg, var(--bg-base) 0%, var(--bg-layer-1) 100%);
+  }
+  
+  .depth-layer-1 {
+    background: linear-gradient(180deg, var(--card-base) 0%, var(--card-mid) 100%);
+    box-shadow: 
+      inset 0 1px 2px var(--shadow-top-glow),
+      0 4px 12px var(--shadow-bottom);
+    border: 1px solid var(--border-base);
+  }
+  
+  .depth-layer-2 {
+    background: linear-gradient(180deg, var(--card-mid) 0%, var(--card-top) 100%);
+    box-shadow: 
+      inset 0 1px 3px var(--shadow-top-glow),
+      0 6px 16px var(--shadow-bottom),
+      0 2px 4px var(--shadow-bottom-deep);
+    border: 1px solid var(--border-elevated);
+  }
+  
+  .depth-layer-3 {
+    background: linear-gradient(180deg, var(--card-top) 0%, var(--card-glow) 100%);
+    box-shadow: 
+      inset 0 1px 4px var(--shadow-top-light),
+      0 8px 24px var(--shadow-bottom),
+      0 4px 8px var(--shadow-bottom-deep);
+    border: 1px solid var(--border-elevated);
+  }
+  
+  /* Hover Elevation */
+  .depth-hover {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .depth-hover:hover {
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 
+      inset 0 1px 4px var(--shadow-top-light),
+      0 12px 32px var(--shadow-bottom),
+      0 6px 12px var(--shadow-bottom-deep);
+  }
+  
+  /* Active/Pressed State */
+  .depth-active {
+    box-shadow: 
+      inset 0 2px 4px var(--shadow-inset-dark),
+      inset 0 1px 2px var(--shadow-inset-light),
+      0 2px 4px var(--shadow-bottom);
+    transform: translateY(1px);
+  }
+  
+  /* Nav Bar Depth */
+  .depth-nav {
+    background: linear-gradient(180deg, var(--bg-layer-2) 0%, var(--bg-layer-1) 100%);
+    box-shadow: 
+      0 1px 0 var(--shadow-top-glow) inset,
+      0 -1px 0 var(--shadow-bottom) inset,
+      0 4px 16px var(--shadow-bottom);
+    border-bottom: 1px solid var(--border-base);
+  }
+  
+  /* Card with Inner Glow */
+  .depth-card-glow {
+    position: relative;
+  }
+  
+  .depth-card-glow::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, 
+      transparent 0%, 
+      var(--shadow-top-light) 50%, 
+      transparent 100%);
+    pointer-events: none;
+  }
+  
+  /* Recessed Elements */
+  .depth-recessed {
+    background: linear-gradient(180deg, var(--bg-layer-1) 0%, var(--bg-layer-2) 100%);
+    box-shadow: 
+      inset 0 2px 4px var(--shadow-inset-dark),
+      inset 0 1px 2px var(--shadow-inset-light),
+      0 1px 2px var(--shadow-bottom);
+    border: 1px solid var(--border-base);
+  }
+  
+  /* Raised Button */
+  .depth-button {
+    background: linear-gradient(180deg, var(--card-mid) 0%, var(--card-base) 100%);
+    box-shadow: 
+      inset 0 1px 2px var(--shadow-top-glow),
+      0 4px 8px var(--shadow-bottom),
+      0 2px 4px var(--shadow-bottom-deep);
+    border: 1px solid var(--border-elevated);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .depth-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+      inset 0 1px 3px var(--shadow-top-light),
+      0 6px 16px var(--shadow-bottom),
+      0 4px 8px var(--shadow-bottom-deep);
+  }
+  
+  .depth-button:active {
+    transform: translateY(0);
+    box-shadow: 
+      inset 0 2px 4px var(--shadow-inset-dark),
+      inset 0 1px 2px var(--shadow-inset-light),
+      0 2px 4px var(--shadow-bottom);
+  }
+  
+  /* Primary Accent Button with Glow - Light Mode Default */
+  .depth-button-primary {
+    background: linear-gradient(90deg, #00C26D 0%, #009955 100%);
+    box-shadow: 
+      inset 0 1px 2px rgba(255, 255, 255, 0.3),
+      0 4px 12px rgba(0, 194, 109, 0.3),
+      0 2px 4px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(0, 194, 109, 0.4);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .depth-button-primary:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 
+      inset 0 1px 3px rgba(255, 255, 255, 0.4),
+      0 8px 24px rgba(0, 194, 109, 0.4),
+      0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* Dark Mode Button Primary Override */
+  .dark .depth-button-primary {
+    background: linear-gradient(90deg, #00FF99 0%, #00CC66 100%);
+    box-shadow: 
+      inset 0 1px 2px rgba(255, 255, 255, 0.2),
+      0 4px 12px rgba(0, 255, 153, 0.4),
+      0 2px 4px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(0, 255, 153, 0.3);
+  }
+  
+  .dark .depth-button-primary:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 
+      inset 0 1px 3px rgba(255, 255, 255, 0.3),
+      0 8px 24px rgba(0, 255, 153, 0.5),
+      0 4px 8px rgba(0, 0, 0, 0.3);
+  }
+  
+  /* Chart Container Depth */
+  .depth-chart {
+    background: linear-gradient(180deg, var(--card-base) 0%, var(--card-mid) 100%);
+    box-shadow: 
+      inset 0 1px 2px var(--shadow-top-glow),
+      0 4px 16px var(--shadow-bottom);
+    border: 1px solid var(--border-base);
+  }
+  
+  /* Selected/Active State with Glow */
+  .depth-selected {
+    background: linear-gradient(180deg, var(--card-top) 0%, var(--card-mid) 100%);
+    box-shadow: 
+      inset 0 1px 4px var(--shadow-top-light),
+      0 0 0 1px var(--glow-accent),
+      0 4px 16px var(--shadow-bottom),
+      0 0 20px var(--glow-accent);
+    border: 1px solid var(--glow-accent-strong);
+  }
+  
+  /* Smooth Transitions */
+  .depth-transition {
+    transition: background-color 0.3s ease,
+                box-shadow 0.3s ease,
+                transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.3s ease;
   }
 }

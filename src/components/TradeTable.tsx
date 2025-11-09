@@ -92,11 +92,7 @@ export function TradeTable({ trades, onDelete, onUpdate, onBulkDelete }: TradeTa
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`flex items-center justify-between p-4 rounded-lg border ${
-            isDark 
-              ? 'bg-[#111111] border-[rgba(255,255,255,0.08)]' 
-              : 'bg-white border-[rgba(0,0,0,0.1)]'
-          }`}
+          className="flex items-center justify-between p-4 rounded-xl depth-layer-2 depth-card-glow"
         >
           <div className="flex items-center gap-4">
             <label className="flex items-center gap-2 cursor-pointer">
@@ -119,7 +115,12 @@ export function TradeTable({ trades, onDelete, onUpdate, onBulkDelete }: TradeTa
             <button
               onClick={handleBulkDelete}
               disabled={selectedTrades.size === 0}
-              className="flex items-center gap-2 px-4 py-2 bg-[#FF4D4D] text-white rounded-lg hover:bg-[#FF6B6B] disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-semibold"
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#FF4D4D] text-white rounded-xl hover:bg-[#FF6B6B] disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold depth-button depth-hover disabled:hover:transform-none"
+              style={{
+                boxShadow: selectedTrades.size > 0 
+                  ? '0 4px 12px rgba(255, 77, 77, 0.4), 0 2px 4px rgba(0, 0, 0, 0.2), inset 0 1px 2px rgba(255, 255, 255, 0.2)' 
+                  : 'none'
+              }}
             >
               <Trash2 className="w-4 h-4" />
               Delete Selected ({selectedTrades.size})
@@ -129,38 +130,39 @@ export function TradeTable({ trades, onDelete, onUpdate, onBulkDelete }: TradeTa
                 setIsBulkMode(false);
                 setSelectedTrades(new Set());
               }}
-              className={`px-4 py-2 border rounded-lg transition-colors ${
-                isDark 
-                  ? 'border-[rgba(255,255,255,0.15)] hover:bg-[#1A1A1A] text-[#EAEAEA]' 
-                  : 'border-[rgba(0,0,0,0.2)] hover:bg-gray-100 text-[#111111]'
-              }`}
+              className="px-4 py-2.5 rounded-xl depth-button depth-hover transition-all"
             >
-              Cancel
+              <span className={isDark ? 'text-[#EAEAEA]' : 'text-[#111111]'}>Cancel</span>
             </button>
           </div>
         </motion.div>
       )}
 
       {/* Table */}
-      <div className="overflow-hidden rounded-xl border dark:border-[rgba(255,255,255,0.08)] border-[rgba(0,0,0,0.1)] dark:bg-gradient-to-b dark:from-[#111111] dark:to-[#151515] bg-white">
-        <div className="flex items-center justify-between p-5 border-b dark:border-[rgba(255,255,255,0.08)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.03)] bg-gray-50">
-          <h4 className="font-semibold text-lg dark:text-[#EAEAEA] text-[#111111]">TradeBook ({trades.length})</h4>
+      <div className="relative overflow-hidden rounded-2xl depth-chart depth-card-glow">
+        {/* Top glow line */}
+        <div className={`absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent ${
+          isDark ? 'via-[rgba(0,255,153,0.3)]' : 'via-[rgba(0,194,109,0.3)]'
+        } to-transparent z-10`} />
+        
+        <div className="relative flex items-center justify-between p-5 border-b border-[rgba(255,255,255,0.08)] dark:border-[rgba(255,255,255,0.08)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(255,255,255,0.02)] bg-[rgba(0,0,0,0.02)]">
+          <h4 className="font-semibold text-lg dark:text-[#EAEAEA] text-[#111111] drop-shadow-[0_1px_2px_rgba(0,0,0,0.1)] dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
+            TradeBook ({trades.length})
+          </h4>
           {!isBulkMode && (
             <button
               onClick={() => setIsBulkMode(true)}
-              className={`text-sm px-4 py-2 border rounded-lg transition-colors ${
-                isDark 
-                  ? 'border-[rgba(255,255,255,0.15)] hover:bg-[rgba(255,255,255,0.05)] hover:border-[#00FF99]/30 text-[#A0A0A0] hover:text-white' 
-                  : 'border-[rgba(0,0,0,0.2)] hover:bg-gray-100 hover:border-[#00C26D]/30 text-[#666666] hover:text-[#111111]'
-              }`}
+              className="text-sm px-4 py-2 rounded-xl depth-button depth-hover transition-all"
             >
-              Bulk Delete
+              <span className={isDark ? 'text-[#A0A0A0] hover:text-white' : 'text-[#666666] hover:text-[#111111]'}>
+                Bulk Delete
+              </span>
             </button>
           )}
         </div>
         <div className="overflow-x-auto max-h-[650px] overflow-y-auto w-full">
           <table className="min-w-full text-sm text-left">
-            <thead className="sticky top-0 z-10 dark:text-[#A0A0A0] text-[#666666] border-b dark:border-[rgba(255,255,255,0.08)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(13,13,13,0.95)] bg-white backdrop-blur-sm">
+            <thead className="sticky top-0 z-10 dark:text-[#A0A0A0] text-[#666666] border-b dark:border-[rgba(255,255,255,0.08)] border-[rgba(0,0,0,0.1)] dark:bg-[rgba(18,18,18,0.98)] bg-[rgba(255,255,255,0.98)] backdrop-blur-sm">
               <tr>
               {isBulkMode && (
                 <th className="p-4 font-medium">
@@ -196,12 +198,16 @@ export function TradeTable({ trades, onDelete, onUpdate, onBulkDelete }: TradeTa
             {trades.map((trade, index) => (
               <tr
                 key={trade.id}
-                className={`group border-b transition-colors ${
+                className={`group border-b transition-all duration-200 ${
                   isDark 
-                    ? `border-[rgba(255,255,255,0.05)] ${index % 2 === 0 ? "bg-[#111111]" : "bg-[#0D0D0D]"} hover:bg-[rgba(0,255,153,0.05)] hover:border-[rgba(0,255,153,0.2)]`
-                    : `border-[rgba(0,0,0,0.05)] ${index % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-gray-100`
+                    ? `border-[rgba(255,255,255,0.05)] ${index % 2 === 0 ? "bg-[rgba(18,18,18,0.5)]" : "bg-[rgba(15,15,15,0.5)]"} hover:bg-[rgba(0,255,153,0.08)] hover:border-[rgba(0,255,153,0.25)]`
+                    : `border-[rgba(0,0,0,0.05)] ${index % 2 === 0 ? "bg-[rgba(255,255,255,0.5)]" : "bg-[rgba(248,248,248,0.5)]"} hover:bg-[rgba(0,194,109,0.05)]`
                 } ${
-                  selectedTrades.has(trade.id) ? (isDark ? "bg-[rgba(0,255,153,0.1)]" : "bg-[rgba(0,194,109,0.1)]") : ""
+                  selectedTrades.has(trade.id) 
+                    ? isDark 
+                      ? "bg-[rgba(0,255,153,0.12)] border-[rgba(0,255,153,0.3)]" 
+                      : "bg-[rgba(0,194,109,0.1)] border-[rgba(0,194,109,0.25)]"
+                    : ""
                 }`}
               >
                 {isBulkMode && (

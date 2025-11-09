@@ -430,24 +430,77 @@ export function parseMT5HTML(html: string): ParseResult {
     dataStartIdx++;
   }
 
-  // Parse Balance
+  // Parse Balance - Try multiple strategies
   let balance = 0;
-  const balanceRow = Array.from(doc.querySelectorAll("tr")).find((r) => {
-    const text = r.textContent || "";
-    return text.includes("Balance:") && text.includes("<b>");
-  });
   
-  if (balanceRow) {
-    const balanceMatch = balanceRow.innerHTML.match(/<b>([\d\s,]+\.\d+)<\/b>/);
-    if (balanceMatch) {
-      balance = parseFloat(balanceMatch[1].replace(/[^\d.-]/g, "").replace(/\s+/g, "") || "0");
-    } else {
-      const bText = balanceRow.querySelector("b")?.textContent?.trim() || "";
-      balance = parseFloat(bText.replace(/[^\d.-]/g, "").replace(/\s+/g, "") || "0");
+  // Strategy 1: Look for balance at the bottom of the document, above charts
+  // Find all elements that might contain balance information
+  const allElements = Array.from(doc.querySelectorAll("*"));
+  
+  // Look for balance near the bottom, before any chart elements
+  const chartElements = doc.querySelectorAll("canvas, svg, [class*='chart'], [id*='chart']");
+  let searchLimit = allElements.length;
+  
+  if (chartElements.length > 0) {
+    // Find the first chart element's position
+    const firstChart = chartElements[0];
+    const chartIndex = allElements.indexOf(firstChart as Element);
+    if (chartIndex > 0) {
+      searchLimit = chartIndex; // Only search before the first chart
+    }
+  }
+  
+  // Search from bottom to top (reverse order) for balance
+  for (let i = Math.min(searchLimit - 1, allElements.length - 1); i >= 0; i--) {
+    const element = allElements[i];
+    const text = element.textContent || "";
+    const innerHTML = element.innerHTML || "";
+    
+    // Check if this element contains "Balance:" and a number
+    if (text.includes("Balance:") || text.includes("balance:")) {
+      // Try to extract balance value
+      const balancePatterns = [
+        /Balance:\s*<b>([\d\s,]+\.\d+)<\/b>/i,
+        /Balance:\s*([\d\s,]+\.\d+)/i,
+        /<b>([\d\s,]+\.\d+)<\/b>/,
+        /([\d\s,]+\.\d+)/,
+      ];
+      
+      for (const pattern of balancePatterns) {
+        const match = innerHTML.match(pattern) || text.match(pattern);
+        if (match) {
+          const balanceStr = match[1] || match[0];
+          const parsed = parseFloat(balanceStr.replace(/[^\d.-]/g, "").replace(/\s+/g, "") || "0");
+          if (parsed > 0) {
+            balance = parsed;
+            break;
+          }
+        }
+      }
+      
+      if (balance > 0) break;
+    }
+  }
+  
+  // Strategy 2: Look for balance in table rows (original method)
+  if (balance === 0) {
+    const balanceRow = Array.from(doc.querySelectorAll("tr")).find((r) => {
+      const text = r.textContent || "";
+      return text.includes("Balance:") && text.includes("<b>");
+    });
+    
+    if (balanceRow) {
+      const balanceMatch = balanceRow.innerHTML.match(/<b>([\d\s,]+\.\d+)<\/b>/);
+      if (balanceMatch) {
+        balance = parseFloat(balanceMatch[1].replace(/[^\d.-]/g, "").replace(/\s+/g, "") || "0");
+      } else {
+        const bText = balanceRow.querySelector("b")?.textContent?.trim() || "";
+        balance = parseFloat(bText.replace(/[^\d.-]/g, "").replace(/\s+/g, "") || "0");
+      }
     }
   }
 
-  // If balance not found, try finding it in summary rows
+  // Strategy 3: Look in summary rows (fallback)
   if (balance === 0) {
     const summaryRow = Array.from(doc.querySelectorAll("tr")).find((r) => {
       const text = r.textContent || "";
@@ -457,6 +510,25 @@ export function parseMT5HTML(html: string): ParseResult {
       const balanceMatch = summaryRow.innerHTML.match(/<b>([\d\s,]+\.\d+)<\/b>/);
       if (balanceMatch) {
         balance = parseFloat(balanceMatch[1].replace(/[^\d.-]/g, "").replace(/\s+/g, "") || "0");
+      }
+    }
+  }
+  
+  // Strategy 4: Look for balance in any div or span near the bottom
+  if (balance === 0) {
+    const bottomElements = Array.from(doc.querySelectorAll("div, span, p, td")).slice(-50); // Last 50 elements
+    for (const element of bottomElements.reverse()) {
+      const text = element.textContent || "";
+      if (text.includes("Balance:") || text.match(/Balance\s*[:=]\s*[\d,]+\.\d+/i)) {
+        const match = text.match(/Balance\s*[:=]\s*([\d\s,]+\.\d+)/i) || text.match(/([\d\s,]+\.\d+)/);
+        if (match) {
+          const balanceStr = match[1] || match[0];
+          const parsed = parseFloat(balanceStr.replace(/[^\d.-]/g, "").replace(/\s+/g, "") || "0");
+          if (parsed > 0) {
+            balance = parsed;
+            break;
+          }
+        }
       }
     }
   }

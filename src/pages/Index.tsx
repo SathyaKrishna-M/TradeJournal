@@ -1,14 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useTheme } from "next-themes";
-import DashboardHeader from "@/components/DashboardHeader";
 import { useAuth } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { TradeForm } from "@/components/TradeForm";
 import { TradeTable } from "@/components/TradeTable";
 import { TradeSummary } from "@/components/TradeSummary";
 import { MT5Upload } from "@/components/MT5Upload";
 import { TradingCalendar } from "@/components/TradingCalendar";
+import { TnTScore } from "@/components/TnTScore";
+import { PerformanceMetrics } from "@/components/PerformanceMetrics";
+import { SemiCircleGauge } from "@/components/SemiCircleGauge";
  // ✅ FIXED import (was destructured incorrectly)
 import {
   collection,
@@ -29,6 +34,8 @@ import {
   Target,
   TrendingDown,
   FileText,
+  Info,
+  Wallet,
 } from "lucide-react";
 import { getSessionFromTradeDate } from "@/utils/sessionDetector";
 import { sortTradesByTime } from "@/utils/sortTrades";
@@ -52,6 +59,8 @@ import {
 } from "recharts";
 import PerformanceRadar from "@/components/PerformanceRadar";
 import { useThemeTooltipStyles } from "@/utils/themeTooltip";
+import { toast } from "@/hooks/use-toast";
+import { Settings as SettingsIcon } from "lucide-react";
 
 export interface Trade {
   id: string;
@@ -78,14 +87,59 @@ export interface Trade {
 }
 
 export default function Index() {
-  const { currentUser } = useAuth();
+  const { currentUser, logout } = useAuth();
+  const navigate = useNavigate();
   const { theme, resolvedTheme } = useTheme();
   const isDark = (theme ?? resolvedTheme) === "dark";
   const tooltipStyles = useThemeTooltipStyles();
   const [trades, setTrades] = useState<Trade[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"analysis" | "history">("analysis");
+  const [activeTab, setActiveTab] = useState<"analysis" | "history" | "settings">("analysis");
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
+  const [accountSize, setAccountSize] = useState<string>(() => {
+    const saved = localStorage.getItem("accountSize");
+    return saved || "10000";
+  });
+  const [ddPercentage, setDdPercentage] = useState<string>(() => {
+    const saved = localStorage.getItem("ddPercentage");
+    return saved || "2";
+  });
+  const [targetProfitAmount, setTargetProfitAmount] = useState<number>(() => {
+    const saved = localStorage.getItem("targetProfitAmount");
+    return saved ? parseFloat(saved) : 500;
+  });
+  const [maxAllowedDailyDD, setMaxAllowedDailyDD] = useState<number>(() => {
+    const saved = localStorage.getItem("maxAllowedDailyDD");
+    return saved ? parseFloat(saved) : 4;
+  });
+  const [maxAllowedDD, setMaxAllowedDD] = useState<number>(() => {
+    const saved = localStorage.getItem("maxAllowedDD");
+    return saved ? parseFloat(saved) : 10;
+  });
+  const [initialBalance, setInitialBalance] = useState<number>(() => {
+    const saved = localStorage.getItem("initialBalance");
+    return saved ? parseFloat(saved) : parseFloat(accountSize) || 10000;
+  });
+
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      if (!profileMenuRef.current) return;
+      if (!profileMenuRef.current.contains(e.target as Node)) setProfileMenuOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/login");
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
+  };
 
   // 🔄 Realtime Firestore sync
   useEffect(() => {
@@ -165,10 +219,71 @@ export default function Index() {
     }
   };
 
+  // Save account size to localStorage
+  useEffect(() => {
+    if (accountSize) {
+      localStorage.setItem("accountSize", accountSize);
+    }
+  }, [accountSize]);
+
+  // Save DD percentage to localStorage
+  useEffect(() => {
+    if (ddPercentage) {
+      localStorage.setItem("ddPercentage", ddPercentage);
+    }
+  }, [ddPercentage]);
+
+  // Save performance metrics to localStorage
+  useEffect(() => {
+    localStorage.setItem("targetProfitAmount", targetProfitAmount.toString());
+  }, [targetProfitAmount]);
+
+  useEffect(() => {
+    localStorage.setItem("maxAllowedDailyDD", maxAllowedDailyDD.toString());
+  }, [maxAllowedDailyDD]);
+
+  useEffect(() => {
+    localStorage.setItem("maxAllowedDD", maxAllowedDD.toString());
+  }, [maxAllowedDD]);
+
+  useEffect(() => {
+    localStorage.setItem("initialBalance", initialBalance.toString());
+  }, [initialBalance]);
+
+  // Update initial balance when account size changes (if initial balance hasn't been manually set)
+  useEffect(() => {
+    const accountSizeValue = parseFloat(accountSize) || 10000;
+    const totalPL = trades.reduce((s, t) => s + Number(t.profitLoss || 0), 0);
+    const startingBalance = accountSizeValue - totalPL;
+    const savedInitialBalance = localStorage.getItem("initialBalance");
+    // Only auto-update if initial balance hasn't been manually set
+    if (!savedInitialBalance || parseFloat(savedInitialBalance) === 0) {
+      setInitialBalance(startingBalance);
+    }
+  }, [accountSize, trades]);
+
+  // Handle balance from MT5 upload
+  const handleBalanceFromMT5 = (balance: number) => {
+    if (balance > 0) {
+      setAccountSize(balance.toString());
+      toast({
+        title: "✅ Account Balance Updated",
+        description: `Account balance set to $${balance.toFixed(2)} from MT5 report.`,
+      });
+    }
+  };
+
   // 📈 Metrics
   const metrics = useMemo(() => {
     const totalTrades = trades.length;
     const totalPL = trades.reduce((s, t) => s + Number(t.profitLoss || 0), 0);
+    const accountSizeValue = parseFloat(accountSize) || 10000;
+    // Current balance is the account size from HTML (which already includes P&L)
+    const currentBalance = accountSizeValue;
+    // Starting balance = current balance - total P&L (subtract P&L to get original starting balance)
+    const startingBalance = currentBalance - totalPL;
+    // Balance card should show starting balance
+    const balance = startingBalance;
     
     // Calculate Profit Factor
     const grossProfit = trades
@@ -239,18 +354,21 @@ export default function Index() {
     
     return {
       totalTrades,
-      totalPL,
+      totalPL: Number(totalPL.toFixed(2)),
+      balance: Number(balance.toFixed(2)),
+      startingBalance: Number(startingBalance.toFixed(2)),
+      currentBalance: Number(currentBalance.toFixed(2)),
       avgRR: Number(avgRR.toFixed(2)),
       winRate: Number(winRate.toFixed(1)),
       profitFactor: Number(profitFactor.toFixed(2)),
       winStreak,
       lossStreak,
-      monthPL,
+      monthPL: Number(monthPL.toFixed(2)),
       tradingDays,
       bestTrade: bestTrade ? Number(bestTrade.profitLoss).toFixed(2) : "0.00",
       worstTrade: worstTrade ? Number(worstTrade.profitLoss).toFixed(2) : "0.00",
     };
-  }, [trades]);
+  }, [trades, accountSize]);
 
   // 📊 Chart Data
   const equityData = trades
@@ -356,278 +474,421 @@ export default function Index() {
     });
   }, [trades]);
 
-  // P&L Distribution by Duration (binned)
-  const durationDistributionData = useMemo(() => {
-    const bins: { [key: string]: { profit: number; loss: number } } = {
-      "0-1m": { profit: 0, loss: 0 },
-      "1-5m": { profit: 0, loss: 0 },
-      "5-15m": { profit: 0, loss: 0 },
-      "15-30m": { profit: 0, loss: 0 },
-      "30m-1h": { profit: 0, loss: 0 },
-      "1h-2h": { profit: 0, loss: 0 },
-      "2h-4h": { profit: 0, loss: 0 },
-      "4h-8h": { profit: 0, loss: 0 },
-      "8h+": { profit: 0, loss: 0 },
-    };
-
-    trades.forEach((trade) => {
-      const openTime = trade.openTime ? new Date(trade.openTime) : new Date(trade.date);
-      const closeTime = trade.closeTime ? new Date(trade.closeTime) : new Date(trade.date);
-      const durationMinutes = (closeTime.getTime() - openTime.getTime()) / (1000 * 60);
-      
-      let bin: string;
-      if (durationMinutes < 1) bin = "0-1m";
-      else if (durationMinutes < 5) bin = "1-5m";
-      else if (durationMinutes < 15) bin = "5-15m";
-      else if (durationMinutes < 30) bin = "15-30m";
-      else if (durationMinutes < 60) bin = "30m-1h";
-      else if (durationMinutes < 120) bin = "1h-2h";
-      else if (durationMinutes < 240) bin = "2h-4h";
-      else if (durationMinutes < 480) bin = "4h-8h";
-      else bin = "8h+";
-
-      if (trade.profitLoss > 0) {
-        bins[bin].profit += trade.profitLoss;
-      } else {
-        bins[bin].loss += Math.abs(trade.profitLoss);
-      }
-    });
-
-    return Object.entries(bins).map(([duration, data]) => ({
-      duration,
-      profit: data.profit,
-      loss: data.loss,
-    }));
-  }, [trades]);
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${isDark ? 'bg-gradient-to-b from-[#000000] to-[#0A0A0A] text-white' : 'bg-[#F9FAFB] text-[#111111]'}`}>
-      <DashboardHeader />
-
-      <main className="pt-20 pb-12 w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16">
-        {/* Page Header */}
-        <div className="mb-6">
-          <h1 className={`text-3xl lg:text-4xl font-bold mb-2 ${isDark ? 'text-white' : 'text-[#111111]'}`}>
-            Hello, {currentUser?.displayName || (currentUser?.email ? currentUser.email.split('@')[0] : 'User')}
-          </h1>
-          <p className={`${isDark ? 'text-[#9A9A9A]' : 'text-[#666666]'} text-sm lg:text-base`}>Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}! Track your trading performance.</p>
-        </div>
-
-        {/* ===== Tab Navigation - Pill Container ===== */}
-        <div className="mb-8 flex justify-center">
-          <div className={`inline-flex gap-2 p-1.5 rounded-full border shadow-lg ${
-            isDark ? 'bg-[#111111] border-[#1A1A1A]' : 'bg-gray-100 border-[rgba(0,0,0,0.1)]'
-          }`}>
-            <button
-              onClick={() => setActiveTab("analysis")}
-              className={`px-6 py-2.5 font-semibold text-sm lg:text-base transition-all duration-300 rounded-full flex items-center gap-2 ${
-                activeTab === "analysis"
-                  ? isDark
-                    ? "bg-gradient-to-r from-[#00FF99] to-[#00CC66] text-black shadow-[0_0_20px_rgba(0,255,153,0.4)]"
-                    : "bg-gradient-to-r from-[#00C26D] to-[#009955] text-white shadow-[0_0_20px_rgba(0,194,109,0.3)]"
-                  : isDark
-                    ? "text-[#9A9A9A] hover:text-[#DADADA] hover:bg-[#1A1A1A]"
-                    : "text-[#666666] hover:text-[#111111] hover:bg-gray-200"
+    <div className="min-h-screen depth-layer-0 transition-colors duration-300">
+      {/* ===== Seamless Integrated Top Section ===== */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 pt-8 pb-6"
+      >
+        <div className="flex items-center justify-between">
+          {/* Left: Logo */}
+          <motion.div
+            className="flex items-center gap-3 cursor-pointer group"
+            onClick={() => navigate("/dashboard")}
+            whileHover={{ scale: 1.02 }}
+            transition={{ duration: 0.2 }}
+          >
+            <motion.div
+              className={`relative w-10 h-10 rounded-xl flex items-center justify-center ${
+                isDark 
+                  ? 'bg-gradient-to-tr from-[#00FF99] to-[#00CC66] shadow-[0_0_20px_rgba(0,255,153,0.3)]' 
+                  : 'bg-gradient-to-tr from-[#00C26D] to-[#009955] shadow-[0_0_15px_rgba(0,194,109,0.2)]'
               }`}
+              animate={{ scale: [1, 1.04, 1], rotate: [0, 2, -2, 0] }}
+              transition={{ duration: 4, repeat: Infinity }}
             >
-              <BarChart2 size={18} />
-              Analysis
-            </button>
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-[rgba(255,255,255,0.3)] to-transparent opacity-60" />
+              <img src="/favicon.png" alt="TracknTrade" className="w-7 h-7 relative z-10" />
+            </motion.div>
+            <div className="leading-tight">
+              <div className={`font-heading text-lg font-bold tracking-[-0.3px] ${
+                isDark 
+                  ? 'text-white drop-shadow-[0_0_20px_rgba(0,255,153,0.2)]' 
+                  : 'text-[var(--text-primary)] drop-shadow-[0_1px_2px_rgba(0,0,0,0.1)]'
+              }`}>
+                TracknTrade
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Center: Tabs Navigation */}
+          <div className="flex-1 flex justify-center px-4">
+            <div className="relative inline-flex gap-2">
+              <button
+                onClick={() => setActiveTab("analysis")}
+                className={`relative px-6 py-2.5 font-heading font-medium text-[0.95rem] tracking-[-0.2px] transition-all duration-300 rounded-xl flex items-center gap-2 ${
+                  activeTab === "analysis"
+                    ? isDark
+                      ? "bg-gradient-to-r from-[#00FF99] to-[#00CC66] text-black shadow-[0_0_20px_rgba(0,255,153,0.4)]"
+                      : "bg-gradient-to-r from-[#00C26D] to-[#009955] text-white shadow-[0_0_15px_rgba(0,194,109,0.3)]"
+                    : isDark
+                      ? "text-[rgba(255,255,255,0.6)] hover:text-[rgba(255,255,255,0.9)] hover:bg-[rgba(255,255,255,0.05)]"
+                      : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[rgba(0,0,0,0.03)]"
+                }`}
+              >
+                {activeTab === "analysis" && (
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-[rgba(255,255,255,0.2)] to-transparent opacity-50" />
+                )}
+                <BarChart2 size={18} className="relative z-10" />
+                <span className="relative z-10">Analysis</span>
+              </button>
+              <button
+                onClick={() => setActiveTab("history")}
+                className={`relative px-6 py-2.5 font-heading font-medium text-[0.95rem] tracking-[-0.2px] transition-all duration-300 rounded-xl flex items-center gap-2 ${
+                  activeTab === "history"
+                    ? isDark
+                      ? "bg-gradient-to-r from-[#00FF99] to-[#00CC66] text-black shadow-[0_0_20px_rgba(0,255,153,0.4)]"
+                      : "bg-gradient-to-r from-[#00C26D] to-[#009955] text-white shadow-[0_0_15px_rgba(0,194,109,0.3)]"
+                    : isDark
+                      ? "text-[rgba(255,255,255,0.6)] hover:text-[rgba(255,255,255,0.9)] hover:bg-[rgba(255,255,255,0.05)]"
+                      : "text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[rgba(0,0,0,0.03)]"
+                }`}
+              >
+                {activeTab === "history" && (
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-[rgba(255,255,255,0.2)] to-transparent opacity-50" />
+                )}
+                <FileText size={18} className="relative z-10" />
+                <span className="relative z-10">Trade History</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Right: Profile Section */}
+          <div className="relative flex items-center gap-3" ref={profileMenuRef}>
+            <div className={`hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg font-heading font-medium text-[0.95rem] transition-all ${
+              isDark 
+                ? 'text-[rgba(255,255,255,0.7)] hover:text-white hover:bg-[rgba(255,255,255,0.05)]' 
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[rgba(0,0,0,0.03)]'
+            }`}>
+              {currentUser?.displayName || currentUser?.email || "Guest"}
+            </div>
+
+            <div className={`p-1.5 rounded-lg transition-all ${
+              isDark 
+                ? 'hover:bg-[rgba(255,255,255,0.05)]' 
+                : 'hover:bg-[rgba(0,0,0,0.03)]'
+            }`}>
+              <ThemeToggle />
+            </div>
+
             <button
-              onClick={() => setActiveTab("history")}
-              className={`px-6 py-2.5 font-semibold text-sm lg:text-base transition-all duration-300 rounded-full flex items-center gap-2 ${
-                activeTab === "history"
-                  ? isDark
-                    ? "bg-gradient-to-r from-[#00FF99] to-[#00CC66] text-black shadow-[0_0_20px_rgba(0,255,153,0.4)]"
-                    : "bg-gradient-to-r from-[#00C26D] to-[#009955] text-white shadow-[0_0_20px_rgba(0,194,109,0.3)]"
-                  : isDark
-                    ? "text-[#9A9A9A] hover:text-[#DADADA] hover:bg-[#1A1A1A]"
-                    : "text-[#666666] hover:text-[#111111] hover:bg-gray-200"
+              onClick={() => setProfileMenuOpen((s) => !s)}
+              className={`relative w-10 h-10 rounded-xl overflow-hidden transition-all group ${
+                isDark 
+                  ? 'ring-2 ring-transparent hover:ring-[rgba(0,255,153,0.3)] shadow-[0_0_15px_rgba(0,255,153,0.1)]' 
+                  : 'ring-2 ring-transparent hover:ring-[rgba(0,194,109,0.2)] shadow-[0_0_10px_rgba(0,194,109,0.1)]'
               }`}
+              aria-label="Open profile menu"
             >
-              <FileText size={18} />
-              Trade History
+              <div className={`absolute inset-0 bg-gradient-to-br ${
+                isDark 
+                  ? 'from-[rgba(0,255,153,0.1)] to-transparent' 
+                  : 'from-[rgba(0,194,109,0.08)] to-transparent'
+              } opacity-0 group-hover:opacity-100 transition-opacity`} />
+              <img
+                src={currentUser?.photoURL ?? "/favicon.png"}
+                alt="profile"
+                className="w-full h-full object-cover relative z-10"
+              />
             </button>
+
+            <AnimatePresence>
+              {profileMenuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                  transition={{ duration: 0.15, ease: "easeOut" }}
+                  className={`absolute right-0 top-12 w-48 rounded-xl overflow-hidden z-50 ${
+                    isDark 
+                      ? 'bg-[#121212] border border-[rgba(255,255,255,0.1)] shadow-[0_8px_32px_rgba(0,0,0,0.5)]' 
+                      : 'bg-white border border-[rgba(0,0,0,0.1)] shadow-[0_8px_32px_rgba(0,0,0,0.15)]'
+                  }`}
+                  style={{
+                    boxShadow: isDark 
+                      ? '0 8px 32px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+                      : '0 8px 32px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.8)'
+                  }}
+                >
+                  <div className={`absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent ${
+                    isDark ? 'via-[rgba(0,255,153,0.3)]' : 'via-[rgba(0,194,109,0.3)]'
+                  } to-transparent`} />
+                  
+                  <button
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      navigate("/profile");
+                    }}
+                    className={`w-full text-left px-4 py-3 text-sm transition-colors ${
+                      isDark 
+                        ? 'text-[#EAEAEA] hover:bg-[rgba(255,255,255,0.05)]' 
+                        : 'text-[#111111] hover:bg-[rgba(0,0,0,0.03)]'
+                    }`}
+                  >
+                    Profile
+                  </button>
+
+                  <div className={`h-px bg-gradient-to-r from-transparent ${
+                    isDark ? 'via-[rgba(255,255,255,0.1)]' : 'via-[rgba(0,0,0,0.1)]'
+                  } to-transparent`} />
+
+                  <button
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      handleLogout();
+                    }}
+                    className="w-full text-left px-4 py-3 text-sm text-[#FF4D4D] hover:bg-[rgba(255,77,77,0.1)] transition-colors"
+                  >
+                    Logout
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
+      </motion.div>
+
+      <main className="w-full max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 2xl:px-16 pb-12">
+        {/* Page Header with Depth */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
+          className="mb-8"
+        >
+          <h1 className={`font-heading text-3xl lg:text-4xl font-bold mb-2 tracking-[-0.5px] drop-shadow-[0_2px_4px_rgba(0,0,0,0.1)] dark:drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] ${
+            isDark ? 'text-white' : 'text-[var(--text-primary)]'
+          }`}>
+            Hello, {currentUser?.displayName || (currentUser?.email ? currentUser.email.split('@')[0] : 'User')}
+          </h1>
+          <p className={`font-body ${isDark ? 'text-[rgba(255,255,255,0.6)]' : 'text-[var(--text-secondary)]'} text-[0.95rem]`}>
+            Good {new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"}! Track your trading performance.
+          </p>
+        </motion.div>
 
         {/* ===== Tab Content ===== */}
         <div className="transition-all duration-300">
           {activeTab === "analysis" && (
             <div className="animate-fadeIn">
               {/* ===== Analysis Tab Content ===== */}
-              {/* 1. Top Metrics Section - 6 Cards */}
-              <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 mb-8">
-                {/* Total Profit/Loss */}
-                <div className={`group relative p-5 rounded-2xl border hover:scale-[1.02] transition-all duration-300 min-h-[140px] flex flex-col justify-between overflow-hidden ${
-                  isDark 
-                    ? 'bg-gradient-to-br from-[#0F0F0F] to-[#1A1A1A] border-[rgba(0,255,153,0.15)] shadow-[0_0_12px_rgba(0,255,153,0.1)_inset] hover:shadow-[0_0_20px_rgba(0,255,153,0.3)]' 
-                    : 'bg-white border-[rgba(0,194,109,0.2)] shadow-md hover:shadow-lg'
-                }`}>
-                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
-                    isDark ? 'bg-gradient-to-br from-[#00FF99]/10 to-transparent' : 'bg-gradient-to-br from-[#00C26D]/5 to-transparent'
-                  }`}></div>
+              {/* 1. Top Metrics Section - 6 Cards with Depth */}
+              <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6 mb-10">
+                {/* Balance - First Card */}
+                <div className="group relative p-6 rounded-2xl depth-layer-2 depth-hover depth-card-glow min-h-[160px] flex flex-col justify-between overflow-hidden border-[rgba(0,255,153,0.2)] dark:border-[rgba(0,255,153,0.25)] border-[rgba(0,194,109,0.25)]">
+                  <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${
+                    isDark 
+                      ? 'from-[rgba(0,255,153,0.4)] via-[rgba(0,255,153,0.6)] to-[rgba(0,255,153,0.4)]' 
+                      : 'from-[rgba(0,194,109,0.4)] via-[rgba(0,194,109,0.6)] to-[rgba(0,194,109,0.4)]'
+                  } opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl ${
+                    isDark ? 'bg-gradient-to-br from-[rgba(0,255,153,0.1)] to-transparent' : 'bg-gradient-to-br from-[rgba(0,194,109,0.08)] to-transparent'
+                  }`} />
                   <div className="relative z-10 flex items-start gap-4">
-                    <div className={`p-2.5 rounded-lg border ${
-                      isDark ? 'bg-[#00FF99]/10 border-[#00FF99]/30' : 'bg-[#00C26D]/10 border-[#00C26D]/30'
+                    <div className={`p-3 rounded-xl depth-recessed ${
+                      isDark ? 'bg-[rgba(0,255,153,0.12)] border-[rgba(0,255,153,0.3)]' : 'bg-[rgba(0,194,109,0.15)] border-[rgba(0,194,109,0.35)]'
                     }`}>
-                      <TrendingUp className={`w-5 h-5 ${isDark ? 'text-[#00FF99]' : 'text-[#00C26D]'}`} />
+                      <Wallet className={`w-5 h-5 ${isDark ? 'text-[#00FF99]' : 'text-[#00C26D]'}`} />
                     </div>
                     <div className="flex-1">
-                      <div className={`text-xs font-medium mb-2 uppercase tracking-wide ${isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}`}>Total Profit/Loss</div>
+                      <div className={`font-body text-xs font-medium mb-3 uppercase tracking-[0.5px] ${isDark ? 'text-[rgba(255,255,255,0.6)]' : 'text-[var(--text-secondary)]'}`}>Balance</div>
+                      <div className={`font-heading metric-value text-2xl lg:text-3xl font-semibold mb-2 tracking-[-0.2px] ${isDark ? 'text-white' : 'text-[var(--text-primary)]'}`}>
+                        ${metrics.currentBalance.toFixed(2)}
+                      </div>
+                      <div className={`font-body text-xs ${isDark ? 'text-[rgba(255,255,255,0.6)]' : 'text-[var(--text-secondary)]'}`}>
+                        Account: ${metrics.startingBalance.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Total Profit/Loss - Second Card */}
+                <div className={`group relative p-6 rounded-2xl depth-layer-2 depth-hover depth-card-glow min-h-[160px] flex flex-col justify-between overflow-hidden ${
+                  metrics.totalPL >= 0 
+                    ? isDark 
+                      ? 'border-[rgba(0,255,153,0.2)]' 
+                      : 'border-[rgba(0,194,109,0.25)]'
+                    : 'border-[rgba(255,77,77,0.2)]'
+                }`}>
+                  {/* Top glow gradient */}
+                  <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${
+                    metrics.totalPL >= 0
+                      ? isDark 
+                        ? 'from-[rgba(0,255,153,0.3)] via-[rgba(0,255,153,0.5)] to-[rgba(0,255,153,0.3)]' 
+                        : 'from-[rgba(0,194,109,0.3)] via-[rgba(0,194,109,0.5)] to-[rgba(0,194,109,0.3)]'
+                      : 'from-[rgba(255,77,77,0.3)] via-[rgba(255,77,77,0.5)] to-[rgba(255,77,77,0.3)]'
+                  } opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                  
+                  {/* Hover glow effect */}
+                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl ${
+                    metrics.totalPL >= 0
+                      ? isDark 
+                        ? 'bg-gradient-to-br from-[rgba(0,255,153,0.08)] to-transparent' 
+                        : 'bg-gradient-to-br from-[rgba(0,194,109,0.06)] to-transparent'
+                      : 'bg-gradient-to-br from-[rgba(255,77,77,0.08)] to-transparent'
+                  }`} />
+                  
+                  <div className="relative z-10 flex items-start gap-4">
+                    <div className={`p-3 rounded-xl depth-recessed ${
+                      metrics.totalPL >= 0
+                        ? isDark 
+                          ? 'bg-[rgba(0,255,153,0.1)] border-[rgba(0,255,153,0.25)]' 
+                          : 'bg-[rgba(0,194,109,0.12)] border-[rgba(0,194,109,0.3)]'
+                        : 'bg-[rgba(255,77,77,0.1)] border-[rgba(255,77,77,0.25)]'
+                    }`}>
+                      <TrendingUp className={`w-5 h-5 ${
+                        metrics.totalPL >= 0 
+                          ? isDark ? 'text-[#00FF99]' : 'text-[#00C26D]'
+                          : 'text-[#FF4D4D]'
+                      }`} />
+                    </div>
+                    <div className="flex-1">
+                      <div className={`font-body text-xs font-medium mb-3 uppercase tracking-[0.5px] ${isDark ? 'text-[rgba(255,255,255,0.6)]' : 'text-[var(--text-secondary)]'}`}>
+                        Total Profit/Loss
+                      </div>
                       {metrics.totalPL >= 0 ? (
-                        <div className={`text-2xl lg:text-3xl font-bold mb-1 bg-gradient-to-r bg-clip-text text-transparent ${
+                        <div className={`font-heading metric-value text-2xl lg:text-3xl font-semibold mb-2 tracking-[-0.2px] bg-gradient-to-r bg-clip-text text-transparent ${
                           isDark 
-                            ? 'from-[#00FF99] to-[#00CC66] drop-shadow-[0_0_15px_rgba(0,255,153,0.5)]' 
+                            ? 'from-[#00FF99] to-[#00CC66] drop-shadow-[0_0_20px_rgba(0,255,153,0.6)]' 
                             : 'from-[#00C26D] to-[#009955]'
                         }`}>
                           ${metrics.totalPL >= 0 ? "+" : ""}{metrics.totalPL.toFixed(2)}
                         </div>
                       ) : (
-                        <div className="text-2xl lg:text-3xl font-bold mb-1 bg-gradient-to-r from-[#FF4D4D] to-[#CC3333] bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(255,77,77,0.5)]">
-              ${metrics.totalPL.toFixed(2)}
+                        <div className="font-heading metric-value text-2xl lg:text-3xl font-semibold mb-2 tracking-[-0.2px] bg-gradient-to-r from-[#FF4D4D] to-[#CC3333] bg-clip-text text-transparent drop-shadow-[0_0_20px_rgba(255,77,77,0.6)]">
+                          ${metrics.totalPL.toFixed(2)}
                         </div>
                       )}
-                      <div className={`text-xs ${isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}`}>All time</div>
+                      <div className={`font-body text-xs ${isDark ? 'text-[rgba(255,255,255,0.6)]' : 'text-[var(--text-secondary)]'}`}>All time</div>
                     </div>
                   </div>
                 </div>
 
                 {/* Win Rate */}
-                <div className={`group p-5 rounded-2xl border hover:scale-[1.02] transition-all duration-300 min-h-[140px] flex flex-col justify-between ${
-                  isDark 
-                    ? 'bg-gradient-to-br from-[#0F0F0F] to-[#1A1A1A] border-[rgba(0,255,153,0.15)] shadow-[0_0_12px_rgba(0,255,153,0.1)_inset] hover:border-[#00FF99]/30 hover:shadow-[0_0_20px_rgba(0,255,153,0.3)]' 
-                    : 'bg-white border-[rgba(0,194,109,0.2)] shadow-md hover:shadow-lg'
-                }`}>
-                  <div className="flex items-start gap-4">
-                    <div className={`p-2.5 rounded-lg border ${
-                      isDark ? 'bg-[#00FF99]/10 border-[#00FF99]/30' : 'bg-[#00C26D]/10 border-[#00C26D]/30'
+                <div className="group relative p-6 rounded-2xl depth-layer-2 depth-hover depth-card-glow min-h-[160px] flex flex-col justify-between overflow-hidden border-[rgba(0,255,153,0.15)] dark:border-[rgba(0,255,153,0.2)] border-[rgba(0,194,109,0.2)]">
+                  <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${
+                    isDark 
+                      ? 'from-[rgba(0,255,153,0.3)] via-[rgba(0,255,153,0.5)] to-[rgba(0,255,153,0.3)]' 
+                      : 'from-[rgba(0,194,109,0.3)] via-[rgba(0,194,109,0.5)] to-[rgba(0,194,109,0.3)]'
+                  } opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl ${
+                    isDark ? 'bg-gradient-to-br from-[rgba(0,255,153,0.08)] to-transparent' : 'bg-gradient-to-br from-[rgba(0,194,109,0.06)] to-transparent'
+                  }`} />
+                  <div className="relative z-10 flex items-start gap-4">
+                    <div className={`p-3 rounded-xl depth-recessed ${
+                      isDark ? 'bg-[rgba(0,255,153,0.1)] border-[rgba(0,255,153,0.25)]' : 'bg-[rgba(0,194,109,0.12)] border-[rgba(0,194,109,0.3)]'
                     }`}>
                       <Activity className={`w-5 h-5 ${isDark ? 'text-[#00FF99]' : 'text-[#00C26D]'}`} />
                     </div>
                     <div className="flex-1">
-                      <div className={`text-xs font-medium mb-2 uppercase tracking-wide ${isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}`}>Win Rate</div>
-                      <div className={`text-2xl lg:text-3xl font-bold mb-1 bg-gradient-to-r bg-clip-text text-transparent ${
+                      <div className={`font-body text-xs font-medium mb-3 uppercase tracking-[0.5px] ${isDark ? 'text-[rgba(255,255,255,0.6)]' : 'text-[var(--text-secondary)]'}`}>Win Rate</div>
+                      <div className={`font-heading metric-value text-2xl lg:text-3xl font-semibold mb-2 tracking-[-0.2px] bg-gradient-to-r bg-clip-text text-transparent ${
                         isDark ? 'from-[#00FF99] to-[#00CC66]' : 'from-[#00C26D] to-[#009955]'
                       }`}>
                         {metrics.winRate}%
                       </div>
-                      <div className={`text-xs ${isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}`}>{trades.filter((t) => t.profitLoss > 0).length} wins</div>
+                      <div className={`font-body text-xs ${isDark ? 'text-[rgba(255,255,255,0.6)]' : 'text-[var(--text-secondary)]'}`}>{trades.filter((t) => t.profitLoss > 0).length} wins</div>
                     </div>
-            </div>
-          </div>
+                  </div>
+                </div>
 
                 {/* Average R:R Ratio */}
-                <div className={`group p-5 rounded-2xl border hover:scale-[1.02] transition-all duration-300 min-h-[140px] flex flex-col justify-between ${
-                  isDark 
-                    ? 'bg-gradient-to-br from-[#0F0F0F] to-[#1A1A1A] border-[rgba(0,255,153,0.15)] shadow-[0_0_12px_rgba(0,255,153,0.1)_inset] hover:border-[#00FF99]/30 hover:shadow-[0_0_20px_rgba(0,255,153,0.3)]' 
-                    : 'bg-white border-[rgba(0,194,109,0.2)] shadow-md hover:shadow-lg'
-                }`}>
-                  <div className="flex items-start gap-4">
-                    <div className={`p-2.5 rounded-lg border ${
-                      isDark ? 'bg-[#00FF99]/10 border-[#00FF99]/30' : 'bg-[#00C26D]/10 border-[#00C26D]/30'
+                <div className="group relative p-6 rounded-2xl depth-layer-2 depth-hover depth-card-glow min-h-[160px] flex flex-col justify-between overflow-hidden border-[rgba(0,255,153,0.15)] dark:border-[rgba(0,255,153,0.2)] border-[rgba(0,194,109,0.2)]">
+                  <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${
+                    isDark 
+                      ? 'from-[rgba(0,255,153,0.3)] via-[rgba(0,255,153,0.5)] to-[rgba(0,255,153,0.3)]' 
+                      : 'from-[rgba(0,194,109,0.3)] via-[rgba(0,194,109,0.5)] to-[rgba(0,194,109,0.3)]'
+                  } opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl ${
+                    isDark ? 'bg-gradient-to-br from-[rgba(0,255,153,0.08)] to-transparent' : 'bg-gradient-to-br from-[rgba(0,194,109,0.06)] to-transparent'
+                  }`} />
+                  <div className="relative z-10 flex items-start gap-4">
+                    <div className={`p-3 rounded-xl depth-recessed ${
+                      isDark ? 'bg-[rgba(0,255,153,0.1)] border-[rgba(0,255,153,0.25)]' : 'bg-[rgba(0,194,109,0.12)] border-[rgba(0,194,109,0.3)]'
                     }`}>
                       <Target className={`w-5 h-5 ${isDark ? 'text-[#00FF99]' : 'text-[#00C26D]'}`} />
                     </div>
                     <div className="flex-1">
-                      <div className={`text-xs font-medium mb-2 uppercase tracking-wide ${isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}`}>Average R:R Ratio</div>
-                      <div className={`text-2xl lg:text-3xl font-bold mb-1 ${isDark ? 'text-[#EAEAEA]' : 'text-[#111111]'}`}>
+                      <div className={`font-body text-xs font-medium mb-3 uppercase tracking-[0.5px] ${isDark ? 'text-[rgba(255,255,255,0.6)]' : 'text-[var(--text-secondary)]'}`}>Average R:R Ratio</div>
+                      <div className={`font-heading metric-value text-2xl lg:text-3xl font-semibold mb-2 tracking-[-0.2px] ${isDark ? 'text-white' : 'text-[var(--text-primary)]'}`}>
                         {metrics.avgRR}
                       </div>
-                      <div className={`text-xs ${isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}`}>Risk to reward</div>
+                      <div className={`font-body text-xs ${isDark ? 'text-[rgba(255,255,255,0.6)]' : 'text-[var(--text-secondary)]'}`}>Risk to reward</div>
                     </div>
-            </div>
-          </div>
-
-                {/* Total Trades */}
-                <div className={`group p-5 rounded-2xl border hover:scale-[1.02] transition-all duration-300 min-h-[140px] flex flex-col justify-between ${
-                  isDark 
-                    ? 'bg-gradient-to-br from-[#0F0F0F] to-[#1A1A1A] border-[rgba(0,255,153,0.15)] shadow-[0_0_12px_rgba(0,255,153,0.1)_inset] hover:border-[#00FF99]/30 hover:shadow-[0_0_20px_rgba(0,255,153,0.3)]' 
-                    : 'bg-white border-[rgba(0,194,109,0.2)] shadow-md hover:shadow-lg'
-                }`}>
-                  <div className="flex items-start gap-4">
-                    <div className={`p-2.5 rounded-lg border ${
-                      isDark ? 'bg-[#00FF99]/10 border-[#00FF99]/30' : 'bg-[#00C26D]/10 border-[#00C26D]/30'
-                    }`}>
-                      <BarChart2 className={`w-5 h-5 ${isDark ? 'text-[#00FF99]' : 'text-[#00C26D]'}`} />
-                    </div>
-                    <div className="flex-1">
-                      <div className={`text-xs font-medium mb-2 uppercase tracking-wide ${isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}`}>Total Trades</div>
-                      <div className={`text-2xl lg:text-3xl font-bold mb-1 ${isDark ? 'text-[#EAEAEA]' : 'text-[#111111]'}`}>
-                        {metrics.totalTrades}
-              </div>
-                      <div className={`text-xs ${isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}`}>All trades</div>
-              </div>
-            </div>
-          </div>
+                  </div>
+                </div>
 
                 {/* Best Trade */}
-                <div className={`group relative p-5 rounded-2xl border hover:scale-[1.02] transition-all duration-300 min-h-[140px] flex flex-col justify-between overflow-hidden ${
-                  isDark 
-                    ? 'bg-gradient-to-br from-[#0F0F0F] to-[#1A1A1A] border-[rgba(0,255,153,0.15)] shadow-[0_0_12px_rgba(0,255,153,0.1)_inset] hover:shadow-[0_0_20px_rgba(0,255,153,0.3)]' 
-                    : 'bg-white border-[rgba(0,194,109,0.2)] shadow-md hover:shadow-lg'
-                }`}>
-                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
-                    isDark ? 'bg-gradient-to-br from-[#00FF99]/10 to-transparent' : 'bg-gradient-to-br from-[#00C26D]/5 to-transparent'
-                  }`}></div>
+                <div className="group relative p-6 rounded-2xl depth-layer-2 depth-hover depth-card-glow min-h-[160px] flex flex-col justify-between overflow-hidden border-[rgba(0,255,153,0.2)] dark:border-[rgba(0,255,153,0.25)] border-[rgba(0,194,109,0.25)]">
+                  <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${
+                    isDark 
+                      ? 'from-[rgba(0,255,153,0.4)] via-[rgba(0,255,153,0.6)] to-[rgba(0,255,153,0.4)]' 
+                      : 'from-[rgba(0,194,109,0.4)] via-[rgba(0,194,109,0.6)] to-[rgba(0,194,109,0.4)]'
+                  } opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                  <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl ${
+                    isDark ? 'bg-gradient-to-br from-[rgba(0,255,153,0.1)] to-transparent' : 'bg-gradient-to-br from-[rgba(0,194,109,0.08)] to-transparent'
+                  }`} />
                   <div className="relative z-10 flex items-start gap-4">
-                    <div className={`p-2.5 rounded-lg border ${
-                      isDark ? 'bg-[#00FF99]/10 border-[#00FF99]/30' : 'bg-[#00C26D]/10 border-[#00C26D]/30'
+                    <div className={`p-3 rounded-xl depth-recessed ${
+                      isDark ? 'bg-[rgba(0,255,153,0.12)] border-[rgba(0,255,153,0.3)]' : 'bg-[rgba(0,194,109,0.15)] border-[rgba(0,194,109,0.35)]'
                     }`}>
                       <TrendingUp className={`w-5 h-5 ${isDark ? 'text-[#00FF99]' : 'text-[#00C26D]'}`} />
                     </div>
                     <div className="flex-1">
-                      <div className={`text-xs font-medium mb-2 uppercase tracking-wide ${isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}`}>Best Trade</div>
-                      <div className={`text-2xl lg:text-3xl font-bold mb-1 bg-gradient-to-r bg-clip-text text-transparent ${
+                      <div className={`font-body text-xs font-medium mb-3 uppercase tracking-[0.5px] ${isDark ? 'text-[rgba(255,255,255,0.6)]' : 'text-[var(--text-secondary)]'}`}>Best Trade</div>
+                      <div className={`font-heading metric-value text-2xl lg:text-3xl font-semibold mb-2 tracking-[-0.2px] bg-gradient-to-r bg-clip-text text-transparent ${
                         isDark 
-                          ? 'from-[#00FF99] to-[#00CC66] drop-shadow-[0_0_15px_rgba(0,255,153,0.5)]' 
+                          ? 'from-[#00FF99] to-[#00CC66] drop-shadow-[0_0_20px_rgba(0,255,153,0.6)]' 
                           : 'from-[#00C26D] to-[#009955]'
                       }`}>
                         ${metrics.bestTrade}
                       </div>
-                      <div className={`text-xs ${isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}`}>Highest profit</div>
+                      <div className={`font-body text-xs ${isDark ? 'text-[rgba(255,255,255,0.6)]' : 'text-[var(--text-secondary)]'}`}>Highest profit</div>
                     </div>
-            </div>
-          </div>
+                  </div>
+                </div>
 
                 {/* Worst Trade */}
-                <div className={`group relative p-5 rounded-2xl border hover:scale-[1.02] transition-all duration-300 min-h-[140px] flex flex-col justify-between overflow-hidden ${
-                  isDark 
-                    ? 'bg-gradient-to-br from-[#0F0F0F] to-[#1A1A1A] border-[rgba(255,77,77,0.15)] shadow-[0_0_12px_rgba(255,77,77,0.1)_inset] hover:border-[#FF4D4D]/30 hover:shadow-[0_0_20px_rgba(255,77,77,0.3)]' 
-                    : 'bg-white border-[rgba(255,77,77,0.2)] shadow-md hover:shadow-lg'
-                }`}>
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#FF4D4D]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="group relative p-6 rounded-2xl depth-layer-2 depth-hover depth-card-glow min-h-[160px] flex flex-col justify-between overflow-hidden border-[rgba(255,77,77,0.2)]">
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[rgba(255,77,77,0.4)] via-[rgba(255,77,77,0.6)] to-[rgba(255,77,77,0.4)] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-[rgba(255,77,77,0.1)] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl" />
                   <div className="relative z-10 flex items-start gap-4">
-                    <div className="p-2.5 rounded-lg bg-[#FF4D4D]/10 border border-[#FF4D4D]/30">
+                    <div className="p-3 rounded-xl depth-recessed bg-[rgba(255,77,77,0.12)] border-[rgba(255,77,77,0.3)]">
                       <TrendingDown className="w-5 h-5 text-[#FF4D4D]" />
                     </div>
                     <div className="flex-1">
-                      <div className={`text-xs font-medium mb-2 uppercase tracking-wide ${isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}`}>Worst Trade</div>
-                      <div className="text-2xl lg:text-3xl font-bold mb-1 bg-gradient-to-r from-[#FF4D4D] to-[#CC3333] bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(255,77,77,0.5)]">
+                      <div className={`font-body text-xs font-medium mb-3 uppercase tracking-[0.5px] ${isDark ? 'text-[rgba(255,255,255,0.6)]' : 'text-[var(--text-secondary)]'}`}>Worst Trade</div>
+                      <div className="font-heading metric-value text-2xl lg:text-3xl font-semibold mb-2 tracking-[-0.2px] bg-gradient-to-r from-[#FF4D4D] to-[#CC3333] bg-clip-text text-transparent drop-shadow-[0_0_20px_rgba(255,77,77,0.6)]">
                         ${metrics.worstTrade}
                       </div>
-                      <div className={`text-xs ${isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}`}>Largest loss</div>
-          </div>
-            </div>
-          </div>
-        </section>
+                      <div className={`font-body text-xs ${isDark ? 'text-[rgba(255,255,255,0.6)]' : 'text-[var(--text-secondary)]'}`}>Largest loss</div>
+                    </div>
+                  </div>
+                </div>
+              </section>
 
-              {/* 2. Equity Curve Chart (Full Width) */}
-              <section className="mb-8">
-                <div className={`p-6 rounded-2xl border backdrop-blur-sm shadow-lg transition-all duration-300 ${
-                  isDark 
-                    ? 'bg-gradient-to-b from-[#111111] to-[#151515] border-[rgba(255,255,255,0.08)] hover:shadow-[0_0_20px_rgba(0,255,153,0.2)]' 
-                    : 'bg-white border-[rgba(0,0,0,0.1)] hover:shadow-xl'
-                }`}>
-                  <h2 className={`text-lg lg:text-xl font-semibold mb-2 relative inline-block ${
-                    isDark ? 'text-[#EAEAEA]' : 'text-[#111111]'
-                  }`}>
-                    Equity Curve
-                    <span className={`absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r to-transparent ${
-                      isDark ? 'from-[#00FF99]' : 'from-[#00C26D]'
-                    }`}></span>
-                  </h2>
-                  <p className={`text-xs mb-6 mt-2 ${isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}`}>Cumulative Profit Over Time</p>
+              {/* 2. Equity Curve Chart (Full Width) - Depth-Driven */}
+              <section className="mb-10">
+                <div className="relative p-8 rounded-2xl depth-chart depth-card-glow depth-hover overflow-hidden">
+                  {/* Top glow line */}
+                  <div className={`absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent ${
+                    isDark ? 'via-[rgba(0,255,153,0.3)]' : 'via-[rgba(0,194,109,0.3)]'
+                  } to-transparent`} />
+                  
+                    <h2 className={`font-heading chart-title text-lg lg:text-xl font-semibold mb-3 relative inline-block tracking-[-0.3px] drop-shadow-[0_1px_2px_rgba(0,0,0,0.1)] dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)] ${
+                      isDark ? 'text-white' : 'text-[var(--text-primary)]'
+                    }`}>
+                      Equity Curve
+                      <span className={`absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r ${
+                        isDark 
+                          ? 'from-[#00FF99] via-[#00FF99] to-transparent' 
+                          : 'from-[#00C26D] via-[#00C26D] to-transparent'
+                      } opacity-60`}></span>
+                    </h2>
+                    <p className={`font-body text-xs mb-6 mt-3 ${isDark ? 'text-[rgba(255,255,255,0.7)]' : 'text-[var(--text-secondary)]'}`}>Cumulative Profit Over Time</p>
                   <ResponsiveContainer width="100%" height={350}>
                     <LineChart data={equityData} margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
                       <defs>
@@ -683,127 +944,102 @@ export default function Index() {
           </div>
               </section>
 
-              {/* 3. Calendar Section (Full Width) */}
-              <section className="mb-8">
-                <div className={`p-6 rounded-2xl border backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 ${
-                  isDark 
-                    ? 'bg-gradient-to-b from-[#111111] to-[#151515] border-[rgba(255,255,255,0.08)]' 
-                    : 'bg-white border-[rgba(0,0,0,0.1)]'
-                }`}>
+              {/* 3. TnT Score & Performance Metrics - Dual Section */}
+              <section className="mb-10">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Left: TnT Score */}
+                  <TnTScore trades={trades} />
+                  
+                  {/* Right: Performance Metrics */}
+                  <PerformanceMetrics
+                    trades={trades}
+                    accountSize={accountSize}
+                    initialBalance={initialBalance}
+                    targetProfitAmount={targetProfitAmount}
+                    maxAllowedDD={maxAllowedDD}
+                    maxAllowedDailyDD={maxAllowedDailyDD}
+                    onInitialBalanceChange={setInitialBalance}
+                    onTargetProfitAmountChange={setTargetProfitAmount}
+                    onMaxAllowedDDChange={setMaxAllowedDD}
+                    onMaxAllowedDailyDDChange={setMaxAllowedDailyDD}
+                  />
+                </div>
+              </section>
+
+              {/* 4. Calendar Section (Full Width) - Depth-Driven */}
+              <section className="mb-10">
+                <div className="relative p-8 rounded-2xl depth-chart depth-card-glow overflow-hidden">
+                  {/* Top glow line */}
+                  <div className={`absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent ${
+                    isDark ? 'via-[rgba(0,255,153,0.3)]' : 'via-[rgba(0,194,109,0.3)]'
+                  } to-transparent`} />
                   <TradingCalendar trades={trades} />
                 </div>
               </section>
 
-              {/* 4. Advanced Analysis Section */}
-              <section className="mb-8">
-                <h2 className={`text-xl lg:text-2xl font-semibold mb-6 ${isDark ? 'text-[#EAEAEA]' : 'text-[#111111]'}`}>Detailed Analysis</h2>
+                {/* 5. Advanced Analysis Section - Depth-Driven */}
+                <section className="mb-10">
+                  <h2 className={`font-heading text-xl lg:text-2xl font-semibold mb-8 tracking-[-0.3px] drop-shadow-[0_1px_2px_rgba(0,0,0,0.1)] dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)] ${
+                    isDark ? 'text-white' : 'text-[var(--text-primary)]'
+                  }`}>Detailed Analysis</h2>
                 
                 {/* First Row: Short Analysis, Profitability, Long Analysis */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                  {/* Short Analysis */}
-                  <div className={`p-4 rounded-2xl border backdrop-blur-sm shadow-lg transition-all duration-300 flex flex-col ${
-                    isDark 
-                      ? 'bg-gradient-to-b from-[#111111] to-[#151515] border-[rgba(255,255,255,0.08)] hover:border-[#00FF99]/30 hover:shadow-[0_0_20px_rgba(0,255,153,0.2)]' 
-                      : 'bg-white border-[rgba(0,0,0,0.1)] hover:border-[#00C26D]/30 hover:shadow-xl'
-                  }`}>
-                    <h3 className={`text-lg font-semibold mb-2 text-center ${isDark ? 'text-[#EAEAEA]' : 'text-[#111111]'}`}>Short Analysis</h3>
-                    <div className="flex items-center justify-center flex-1 min-h-[200px] relative -mt-2">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <defs>
-                            <linearGradient id="shortProfitGradient" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor={isDark ? "#00FF99" : "#00C26D"} />
-                              <stop offset="100%" stopColor={isDark ? "#00CC66" : "#009955"} />
-                            </linearGradient>
-                            <linearGradient id="shortLossGradient" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#FF4D4D" />
-                              <stop offset="100%" stopColor="#CC3333" />
-                            </linearGradient>
-                          </defs>
-                          <Pie
-                            data={shortAnalysis.data}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={60}
-                            outerRadius={100}
-                            startAngle={180}
-                            endAngle={0}
-                            dataKey="value"
-                          >
-                            {shortAnalysis.data.map((entry, index) => (
-                              <Cell 
-                                key={`cell-${index}`} 
-                                fill={entry.name === "Profit" ? "url(#shortProfitGradient)" : "url(#shortLossGradient)"}
-                                style={{ filter: isDark ? "drop-shadow(0 0 12px rgba(0,255,153,0.3))" : "drop-shadow(0 0 8px rgba(0,194,109,0.2))" }}
-                              />
-                            ))}
-                          </Pie>
-                          <Tooltip
-                            contentStyle={tooltipStyles.contentStyle}
-                            labelStyle={tooltipStyles.labelStyle}
-                            formatter={(value: number, name: string) => {
-                              const isProfit = name === "Profit";
-                              return [
-                                <span key="value" style={{ color: tooltipStyles.formatterColor(isProfit), fontWeight: "600" }}>
-                                  ${Math.abs(value).toFixed(2)}
-                                </span>,
-                                <span key="label" style={{ color: tooltipStyles.labelStyle.color }}>{name}</span>
-                              ];
-                            }}
-                          />
-                        </PieChart>
-                      </ResponsiveContainer>
+                  {/* Short Analysis - Semi-circle Gauge */}
+                  <div className="relative p-6 rounded-2xl depth-chart depth-hover depth-card-glow flex flex-col overflow-hidden">
+                    {/* Top glow line */}
+                    <div className={`absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent ${
+                      isDark ? 'via-[rgba(0,255,153,0.3)]' : 'via-[rgba(0,194,109,0.3)]'
+                    } to-transparent`} />
+                    <h3 className={`font-heading text-base font-semibold mb-4 text-center tracking-[-0.3px] ${isDark ? 'text-white' : 'text-[var(--text-primary)]'}`}>Short Analysis</h3>
+                    <div className="flex-1 w-full h-[200px]">
+                      <SemiCircleGauge
+                        profit={shortAnalysis.profit}
+                        loss={-shortAnalysis.loss}
+                        isDark={isDark}
+                        gradientId="short"
+                      />
                     </div>
-                    <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
-                      <div className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    <div className="flex flex-wrap items-center justify-center gap-1.5 mt-4">
+                      <div className={`px-2.5 py-1.5 rounded-lg font-body text-xs font-medium transition-all ${
                         isDark 
                           ? 'bg-[rgba(0,255,153,0.1)] border border-[rgba(0,255,153,0.2)]' 
                           : 'bg-[rgba(0,194,109,0.1)] border border-[rgba(0,194,109,0.2)]'
                       }`}>
-                        <span className={isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}>Profit: </span>
-                        <span className={`font-semibold ${
-                          isDark ? 'text-[#00FF99]' : 'text-[#00C26D]'
-                        }`}>${shortAnalysis.profit.toFixed(2)}</span>
-                      </div>
-                      <div className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                        isDark 
-                          ? 'bg-[rgba(0,255,153,0.1)] border border-[rgba(0,255,153,0.2)]' 
-                          : 'bg-[rgba(0,194,109,0.1)] border border-[rgba(0,194,109,0.2)]'
-                      }`}>
-                        <span className={isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}>Wins: </span>
-                        <span className={`font-semibold ${
+                        <span className={isDark ? 'text-[rgba(255,255,255,0.6)]' : 'text-[var(--text-secondary)]'}>Wins: </span>
+                        <span className={`font-heading font-semibold ${
                           isDark ? 'text-[#00FF99]' : 'text-[#00C26D]'
                         }`}>{shortAnalysis.wins}</span>
                       </div>
-                      <div className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      <div className={`px-2.5 py-1.5 rounded-lg font-body text-xs font-medium transition-all ${
                         isDark 
                           ? 'bg-[rgba(255,77,77,0.1)] border border-[rgba(255,77,77,0.2)]' 
                           : 'bg-[rgba(255,77,77,0.1)] border border-[rgba(255,77,77,0.2)]'
                       }`}>
-                        <span className={isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}>Losses: </span>
-                        <span className="text-[#FF4D4D] font-semibold">{shortAnalysis.losses}</span>
+                        <span className={isDark ? 'text-[rgba(255,255,255,0.6)]' : 'text-[var(--text-secondary)]'}>Losses: </span>
+                        <span className="font-heading text-[#FF4D4D] font-semibold">{shortAnalysis.losses}</span>
                       </div>
-                      <div className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      <div className={`px-2.5 py-1.5 rounded-lg font-body text-xs font-medium transition-all ${
                         isDark 
                           ? 'bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)]' 
                           : 'bg-gray-100 border border-gray-200'
                       }`}>
-                        <span className={isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}>Win Rate: </span>
-                        <span className={`font-semibold ${
-                          isDark ? 'text-[#EAEAEA]' : 'text-[#111111]'
+                        <span className={isDark ? 'text-[rgba(255,255,255,0.6)]' : 'text-[var(--text-secondary)]'}>Win Rate: </span>
+                        <span className={`font-heading font-semibold ${
+                          isDark ? 'text-white' : 'text-[var(--text-primary)]'
                         }`}>{shortAnalysis.winRate.toFixed(1)}%</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Profitability */}
-                  <div className={`p-4 rounded-2xl border backdrop-blur-sm shadow-lg transition-all duration-300 flex flex-col ${
-                    isDark 
-                      ? 'bg-gradient-to-b from-[#111111] to-[#151515] border-[rgba(255,255,255,0.08)] hover:border-[#00FF99]/30 hover:shadow-[0_0_20px_rgba(0,255,153,0.2)]' 
-                      : 'bg-white border-[rgba(0,0,0,0.1)] hover:border-[#00C26D]/30 hover:shadow-xl'
-                  }`}>
-                    <h3 className={`text-lg font-semibold mb-2 text-center ${isDark ? 'text-[#EAEAEA]' : 'text-[#111111]'}`}>Profitability</h3>
-                    <div className="flex items-center justify-center flex-1 min-h-[200px] relative -mt-2">
+                  <div className="relative aspect-square p-4 rounded-2xl depth-chart depth-hover depth-card-glow flex flex-col overflow-hidden">
+                    {/* Top glow line */}
+                    <div className={`absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent ${
+                      isDark ? 'via-[rgba(0,255,153,0.3)]' : 'via-[rgba(0,194,109,0.3)]'
+                    } to-transparent`} />
+                    <h3 className={`font-heading text-base font-semibold mb-2 text-center tracking-[-0.3px] ${isDark ? 'text-white' : 'text-[var(--text-primary)]'}`}>Profitability</h3>
+                    <div className="flex-1 w-full flex items-center justify-center min-h-0">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <defs>
@@ -820,8 +1056,8 @@ export default function Index() {
                             data={profitabilityData}
                             cx="50%"
                             cy="50%"
-                            innerRadius={60}
-                            outerRadius={100}
+                            innerRadius="38%"
+                            outerRadius="70%"
                             startAngle={90}
                             endAngle={-270}
                             dataKey="value"
@@ -851,171 +1087,69 @@ export default function Index() {
                       </ResponsiveContainer>
                     </div>
                     <div className="text-center mt-2">
-                      <div className={`text-3xl font-bold ${isDark ? 'text-[#EAEAEA]' : 'text-[#111111]'}`}>{trades.length}</div>
-                      <div className={`text-sm mt-1 ${isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}`}>Total Trades</div>
+                      <div className={`font-heading text-2xl font-semibold tracking-[-0.2px] ${isDark ? 'text-white' : 'text-[var(--text-primary)]'}`}>{trades.length}</div>
+                      <div className={`font-body text-xs mt-0.5 ${isDark ? 'text-[rgba(255,255,255,0.6)]' : 'text-[var(--text-secondary)]'}`}>Total Trades</div>
                     </div>
                   </div>
 
-                  {/* Long Analysis */}
-                  <div className={`p-4 rounded-2xl border backdrop-blur-sm shadow-lg transition-all duration-300 flex flex-col ${
-                    isDark 
-                      ? 'bg-gradient-to-b from-[#111111] to-[#151515] border-[rgba(255,255,255,0.08)] hover:border-[#00FF99]/30 hover:shadow-[0_0_20px_rgba(0,255,153,0.2)]' 
-                      : 'bg-white border-[rgba(0,0,0,0.1)] hover:border-[#00C26D]/30 hover:shadow-xl'
-                  }`}>
-                    <h3 className={`text-lg font-semibold mb-2 text-center ${isDark ? 'text-[#EAEAEA]' : 'text-[#111111]'}`}>Long Analysis</h3>
-                    <div className="flex items-center justify-center flex-1 min-h-[200px] relative -mt-2">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <defs>
-                            <linearGradient id="longProfitGradient" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor={isDark ? "#00FF99" : "#00C26D"} />
-                              <stop offset="100%" stopColor={isDark ? "#00CC66" : "#009955"} />
-                            </linearGradient>
-                            <linearGradient id="longLossGradient" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#FF4D4D" />
-                              <stop offset="100%" stopColor="#CC3333" />
-                            </linearGradient>
-                          </defs>
-                          <Pie
-                            data={longAnalysis.data}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={60}
-                            outerRadius={100}
-                            startAngle={180}
-                            endAngle={0}
-                            dataKey="value"
-                          >
-                            {longAnalysis.data.map((entry, index) => (
-                              <Cell 
-                                key={`cell-${index}`} 
-                                fill={entry.name === "Profit" ? "url(#longProfitGradient)" : "url(#longLossGradient)"}
-                                style={{ filter: isDark ? "drop-shadow(0 0 12px rgba(0,255,153,0.3))" : "drop-shadow(0 0 8px rgba(0,194,109,0.2))" }}
-                              />
-                            ))}
-                          </Pie>
-                          <Tooltip
-                            contentStyle={tooltipStyles.contentStyle}
-                            labelStyle={tooltipStyles.labelStyle}
-                            formatter={(value: number, name: string) => {
-                              const isProfit = name === "Profit";
-                              return [
-                                <span key="value" style={{ color: tooltipStyles.formatterColor(isProfit), fontWeight: "600" }}>
-                                  ${Math.abs(value).toFixed(2)}
-                                </span>,
-                                <span key="label" style={{ color: tooltipStyles.labelStyle.color }}>{name}</span>
-                              ];
-                            }}
-                          />
-                        </PieChart>
-                      </ResponsiveContainer>
+                  {/* Long Analysis - Semi-circle Gauge */}
+                  <div className="relative p-6 rounded-2xl depth-chart depth-hover depth-card-glow flex flex-col overflow-hidden">
+                    {/* Top glow line */}
+                    <div className={`absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent ${
+                      isDark ? 'via-[rgba(0,255,153,0.3)]' : 'via-[rgba(0,194,109,0.3)]'
+                    } to-transparent`} />
+                    <h3 className={`font-heading text-base font-semibold mb-4 text-center tracking-[-0.3px] ${isDark ? 'text-white' : 'text-[var(--text-primary)]'}`}>Long Analysis</h3>
+                    <div className="flex-1 w-full h-[200px]">
+                      <SemiCircleGauge
+                        profit={longAnalysis.profit}
+                        loss={-longAnalysis.loss}
+                        isDark={isDark}
+                        gradientId="long"
+                      />
                     </div>
-                    <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
-                      <div className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    <div className="flex flex-wrap items-center justify-center gap-1.5 mt-4">
+                      <div className={`px-2.5 py-1.5 rounded-lg font-body text-xs font-medium transition-all ${
                         isDark 
                           ? 'bg-[rgba(0,255,153,0.1)] border border-[rgba(0,255,153,0.2)]' 
                           : 'bg-[rgba(0,194,109,0.1)] border border-[rgba(0,194,109,0.2)]'
                       }`}>
-                        <span className={isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}>Profit: </span>
-                        <span className={`font-semibold ${
-                          isDark ? 'text-[#00FF99]' : 'text-[#00C26D]'
-                        }`}>${longAnalysis.profit.toFixed(2)}</span>
-                      </div>
-                      <div className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                        isDark 
-                          ? 'bg-[rgba(0,255,153,0.1)] border border-[rgba(0,255,153,0.2)]' 
-                          : 'bg-[rgba(0,194,109,0.1)] border border-[rgba(0,194,109,0.2)]'
-                      }`}>
-                        <span className={isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}>Wins: </span>
-                        <span className={`font-semibold ${
+                        <span className={isDark ? 'text-[rgba(255,255,255,0.6)]' : 'text-[var(--text-secondary)]'}>Wins: </span>
+                        <span className={`font-heading font-semibold ${
                           isDark ? 'text-[#00FF99]' : 'text-[#00C26D]'
                         }`}>{longAnalysis.wins}</span>
                       </div>
-                      <div className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      <div className={`px-2.5 py-1.5 rounded-lg font-body text-xs font-medium transition-all ${
                         isDark 
                           ? 'bg-[rgba(255,77,77,0.1)] border border-[rgba(255,77,77,0.2)]' 
                           : 'bg-[rgba(255,77,77,0.1)] border border-[rgba(255,77,77,0.2)]'
                       }`}>
-                        <span className={isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}>Losses: </span>
-                        <span className="text-[#FF4D4D] font-semibold">{longAnalysis.losses}</span>
+                        <span className={isDark ? 'text-[rgba(255,255,255,0.6)]' : 'text-[var(--text-secondary)]'}>Losses: </span>
+                        <span className="font-heading text-[#FF4D4D] font-semibold">{longAnalysis.losses}</span>
                       </div>
-                      <div className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      <div className={`px-2.5 py-1.5 rounded-lg font-body text-xs font-medium transition-all ${
                         isDark 
                           ? 'bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)]' 
                           : 'bg-gray-100 border border-gray-200'
                       }`}>
-                        <span className={isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}>Win Rate: </span>
-                        <span className={`font-semibold ${
-                          isDark ? 'text-[#EAEAEA]' : 'text-[#111111]'
+                        <span className={isDark ? 'text-[rgba(255,255,255,0.6)]' : 'text-[var(--text-secondary)]'}>Win Rate: </span>
+                        <span className={`font-heading font-semibold ${
+                          isDark ? 'text-white' : 'text-[var(--text-primary)]'
                         }`}>{longAnalysis.winRate.toFixed(1)}%</span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Second Row: Distribution and Instrument Charts */}
+                {/* Second Row: Instrument Charts */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* P&L Distribution by Duration */}
-                  <div className={`p-6 rounded-2xl border backdrop-blur-sm shadow-lg transition-all duration-300 ${
-                    isDark 
-                      ? 'bg-gradient-to-b from-[#111111] to-[#151515] border-[rgba(255,255,255,0.08)] hover:shadow-[0_0_20px_rgba(0,255,153,0.2)]' 
-                      : 'bg-white border-[rgba(0,0,0,0.1)] hover:shadow-xl'
-                  }`}>
-                    <h3 className={`text-base font-semibold mb-2 ${isDark ? 'text-[#EAEAEA]' : 'text-[#111111]'}`}>P&L Distribution by Duration</h3>
-                    <p className={`text-xs mb-4 ${isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}`}>Profit/Loss grouped by trade duration</p>
-                    <ResponsiveContainer width="100%" height={280}>
-                      <BarChart data={durationDistributionData} margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
-                        <defs>
-                          <linearGradient id="profitBarGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor={isDark ? "#00FF99" : "#00C26D"} />
-                            <stop offset="100%" stopColor={isDark ? "#00CC66" : "#009955"} />
-                          </linearGradient>
-                          <linearGradient id="lossBarGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#FF4D4D" />
-                            <stop offset="100%" stopColor="#CC3333" />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#222222" : "#E5E5E5"} opacity={isDark ? 0.5 : 0.3} />
-                        <XAxis 
-                          dataKey="duration" 
-                          stroke={isDark ? "#AAAAAA" : "#666666"}
-                          style={{ fontSize: '10px', fontFamily: 'Inter' }}
-                          angle={-45}
-                          textAnchor="end"
-                          height={80}
-                        />
-                        <YAxis 
-                          stroke={isDark ? "#AAAAAA" : "#666666"}
-                          style={{ fontSize: '11px', fontFamily: 'Inter' }}
-                        />
-                <Tooltip
-                          contentStyle={tooltipStyles.contentStyle}
-                          labelStyle={tooltipStyles.labelStyle}
-                          formatter={(value: number, name: string) => {
-                            const isProfit = name === "profit";
-                            return [
-                              <span key="value" style={{ color: tooltipStyles.formatterColor(isProfit), fontWeight: "600" }}>
-                                ${Math.abs(value).toFixed(2)}
-                              </span>,
-                              <span key="label" style={{ color: tooltipStyles.labelStyle.color }}>{isProfit ? "Profit" : "Loss"}</span>
-                            ];
-                          }}
-                        />
-                        <Legend wrapperStyle={{ color: isDark ? "#EAEAEA" : "#111111", fontFamily: "Inter" }} />
-                        <Bar dataKey="profit" stackId="a" fill="url(#profitBarGradient)" radius={[0, 0, 0, 0]} />
-                        <Bar dataKey="loss" stackId="a" fill="url(#lossBarGradient)" radius={[8, 8, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-
                   {/* P&L by Trade Duration (Scatter Plot) */}
-                  <div className={`p-6 rounded-2xl border backdrop-blur-sm shadow-lg transition-all duration-300 ${
-                    isDark 
-                      ? 'bg-gradient-to-b from-[#111111] to-[#151515] border-[rgba(255,255,255,0.08)] hover:shadow-[0_0_20px_rgba(0,255,153,0.2)]' 
-                      : 'bg-white border-[rgba(0,0,0,0.1)] hover:shadow-xl'
-                  }`}>
-                    <h3 className={`text-base font-semibold mb-2 ${isDark ? 'text-[#EAEAEA]' : 'text-[#111111]'}`}>P&L by Trade Duration</h3>
-                    <p className={`text-xs mb-4 ${isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}`}>Profit/Loss vs Duration (minutes)</p>
+                  <div className="relative p-6 rounded-2xl depth-chart depth-hover depth-card-glow overflow-hidden">
+                    {/* Top glow line */}
+                    <div className={`absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent ${
+                      isDark ? 'via-[rgba(0,255,153,0.3)]' : 'via-[rgba(0,194,109,0.3)]'
+                    } to-transparent`} />
+                        <h3 className={`font-heading chart-title text-base font-semibold mb-2 tracking-[-0.3px] ${isDark ? 'text-white' : 'text-[var(--text-primary)]'}`}>P&L by Trade Duration</h3>
+                        <p className={`font-body text-xs mb-4 ${isDark ? 'text-[rgba(255,255,255,0.7)]' : 'text-[var(--text-secondary)]'}`}>Profit/Loss vs Duration (minutes)</p>
                     <ResponsiveContainer width="100%" height={280}>
                       <ScatterChart margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#222222" : "#E5E5E5"} opacity={isDark ? 0.5 : 0.3} />
@@ -1064,18 +1198,15 @@ export default function Index() {
                       </ScatterChart>
                     </ResponsiveContainer>
                   </div>
-                </div>
 
-                {/* Third Row: Instrument Charts */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                   {/* Instrument Profit Analysis */}
-                  <div className={`p-6 rounded-2xl border backdrop-blur-sm shadow-lg transition-all duration-300 ${
-                    isDark 
-                      ? 'bg-gradient-to-b from-[#111111] to-[#151515] border-[rgba(255,255,255,0.08)] hover:shadow-[0_0_20px_rgba(0,255,153,0.2)]' 
-                      : 'bg-white border-[rgba(0,0,0,0.1)] hover:shadow-xl'
-                  }`}>
-                    <h3 className={`text-base font-semibold mb-2 ${isDark ? 'text-[#EAEAEA]' : 'text-[#111111]'}`}>Instrument Profit Analysis</h3>
-                    <p className={`text-xs mb-4 ${isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}`}>Profit by Trading Pair</p>
+                  <div className="relative p-6 rounded-2xl depth-chart depth-hover depth-card-glow overflow-hidden">
+                    {/* Top glow line */}
+                    <div className={`absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent ${
+                      isDark ? 'via-[rgba(0,255,153,0.3)]' : 'via-[rgba(0,194,109,0.3)]'
+                    } to-transparent`} />
+                        <h3 className={`font-heading chart-title text-base font-semibold mb-2 tracking-[-0.3px] ${isDark ? 'text-white' : 'text-[var(--text-primary)]'}`}>Instrument Profit Analysis</h3>
+                        <p className={`font-body text-xs mb-4 ${isDark ? 'text-[rgba(255,255,255,0.7)]' : 'text-[var(--text-secondary)]'}`}>Profit by Trading Pair</p>
                     <ResponsiveContainer width="100%" height={280}>
                       <BarChart data={instrumentData} margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
                         <defs>
@@ -1119,47 +1250,6 @@ export default function Index() {
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
-
-                  {/* Instrument Volume Analysis */}
-                  <div className={`p-6 rounded-2xl border backdrop-blur-sm shadow-lg transition-all duration-300 ${
-                    isDark 
-                      ? 'bg-gradient-to-b from-[#111111] to-[#151515] border-[rgba(255,255,255,0.08)] hover:shadow-[0_0_20px_rgba(0,255,153,0.2)]' 
-                      : 'bg-white border-[rgba(0,0,0,0.1)] hover:shadow-xl'
-                  }`}>
-                    <h3 className={`text-base font-semibold mb-2 ${isDark ? 'text-[#EAEAEA]' : 'text-[#111111]'}`}>Instrument Volume Analysis</h3>
-                    <p className={`text-xs mb-4 ${isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}`}>Trade Volume by Trading Pair</p>
-                    <ResponsiveContainer width="100%" height={280}>
-                      <BarChart data={instrumentData} margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
-                        <defs>
-                          <linearGradient id="volumeGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor={isDark ? "#00FF99" : "#00C26D"} />
-                            <stop offset="100%" stopColor={isDark ? "#00CC66" : "#009955"} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#222222" : "#E5E5E5"} opacity={isDark ? 0.5 : 0.3} />
-                        <XAxis 
-                          dataKey="pair" 
-                          stroke={isDark ? "#AAAAAA" : "#666666"}
-                          style={{ fontSize: '11px', fontFamily: 'Inter' }}
-                        />
-                        <YAxis 
-                          stroke={isDark ? "#AAAAAA" : "#666666"}
-                          style={{ fontSize: '11px', fontFamily: 'Inter' }}
-                        />
-                        <Tooltip
-                          contentStyle={tooltipStyles.contentStyle}
-                          labelStyle={tooltipStyles.labelStyle}
-                          formatter={(value: number) => [
-                            <span key="value" style={{ color: tooltipStyles.formatterColor(true), fontWeight: "600" }}>
-                              {value}
-                            </span>,
-                            <span key="label" style={{ color: tooltipStyles.labelStyle.color }}>Volume</span>
-                          ]}
-                        />
-                        <Bar dataKey="volume" fill="url(#volumeGradient)" radius={[8, 8, 0, 0]} barSize={40} />
-              </BarChart>
-            </ResponsiveContainer>
-                  </div>
                 </div>
         </section>
             </div>
@@ -1169,31 +1259,32 @@ export default function Index() {
             <div className="animate-fadeIn">
               {/* ===== Trade History Tab Content ===== */}
               <section className="mb-8">
-                <div className={`p-6 rounded-2xl border backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300 ${
-                  isDark 
-                    ? 'bg-gradient-to-b from-[#111111] to-[#151515] border-[rgba(255,255,255,0.08)]' 
-                    : 'bg-white border-[rgba(0,0,0,0.1)]'
-                }`}>
+                <div className="relative p-8 rounded-2xl depth-chart depth-card-glow overflow-hidden">
+                  {/* Top glow line */}
+                  <div className={`absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent ${
+                    isDark ? 'via-[rgba(0,255,153,0.3)]' : 'via-[rgba(0,194,109,0.3)]'
+                  } to-transparent`} />
+                  
                   <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-                    <div>
-                      <h3 className={`text-lg lg:text-xl font-semibold mb-1 ${isDark ? 'text-[#EAEAEA]' : 'text-[#111111]'}`}>Trade History</h3>
-                      <p className={`text-xs ${isDark ? 'text-[#A0A0A0]' : 'text-[#666666]'}`}>Complete trading history and analysis</p>
-                    </div>
+                        <div>
+                          <h3 className={`font-heading text-lg lg:text-xl font-semibold mb-1 tracking-[-0.3px] drop-shadow-[0_1px_2px_rgba(0,0,0,0.1)] dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)] ${
+                            isDark ? 'text-white' : 'text-[var(--text-primary)]'
+                          }`}>Trade History</h3>
+                          <p className={`font-body text-xs ${isDark ? 'text-[rgba(255,255,255,0.7)]' : 'text-[var(--text-secondary)]'}`}>Complete trading history and analysis</p>
+                        </div>
 
-              <div className="flex items-center gap-3">
-                      <MT5Upload />
-                <button
-                  onClick={() => setShowForm(true)}
-                        className={`flex items-center gap-2 font-semibold px-5 py-2.5 rounded-lg transition-all hover:scale-105 shadow-lg hover:shadow-xl active:scale-95 ${
-                          isDark
-                            ? 'bg-gradient-to-r from-[#00FF99] to-[#00CC66] hover:from-[#33FFB2] hover:to-[#00FF99] text-black shadow-[#00FF99]/30'
-                            : 'bg-gradient-to-r from-[#00C26D] to-[#009955] hover:from-[#00E680] hover:to-[#00C26D] text-white shadow-[#00C26D]/30'
-                        }`}
-                >
-                  <Plus size={18} /> Add Trade
-                </button>
-              </div>
-            </div>
+                    <div className="flex items-center gap-3">
+                      <MT5Upload onBalanceChange={handleBalanceFromMT5} />
+                      <button
+                        onClick={() => setShowForm(true)}
+                        className="relative flex items-center gap-2 font-semibold px-5 py-3 rounded-xl depth-button-primary depth-hover text-black dark:text-black"
+                      >
+                        <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-[rgba(255,255,255,0.2)] to-transparent opacity-50" />
+                        <Plus size={18} className="relative z-10" /> 
+                        <span className="relative z-10">Add Trade</span>
+                      </button>
+                    </div>
+                  </div>
 
             <TradeTable 
               trades={trades} 
@@ -1201,17 +1292,126 @@ export default function Index() {
               onUpdate={handleUpdateTrade}
               onBulkDelete={handleBulkDeleteTrades}
             />
-            {trades.length === 0 && (
-                    <div className={`mt-8 text-center py-12 rounded-xl border ${
+                  {trades.length === 0 && (
+                    <div className={`mt-8 text-center py-12 rounded-xl depth-recessed ${
                       isDark 
-                        ? 'text-[#A0A0A0] bg-[#0D0D0D] border-[rgba(255,255,255,0.08)]' 
-                        : 'text-[#666666] bg-gray-50 border-[rgba(0,0,0,0.1)]'
+                        ? 'text-[#A0A0A0]' 
+                        : 'text-[#666666]'
                     }`}>
                       <p className="text-sm">No trades yet — add one manually or import from MT5.</p>
-              </div>
-            )}
-          </div>
-        </section>
+                    </div>
+                  )}
+                </div>
+              </section>
+            </div>
+          )}
+
+          {activeTab === "settings" && (
+            <div className="animate-fadeIn">
+              {/* ===== Settings Tab Content ===== */}
+              <section className="mb-8">
+                <div className="relative p-8 rounded-2xl depth-chart depth-card-glow overflow-hidden">
+                  {/* Top glow line */}
+                  <div className={`absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent ${
+                    isDark ? 'via-[rgba(0,255,153,0.3)]' : 'via-[rgba(0,194,109,0.3)]'
+                  } to-transparent`} />
+                  
+                  <div className="mb-6">
+                    <h3 className={`font-heading text-lg lg:text-xl font-semibold mb-1 tracking-[-0.3px] drop-shadow-[0_1px_2px_rgba(0,0,0,0.1)] dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)] ${
+                      isDark ? 'text-white' : 'text-[var(--text-primary)]'
+                    }`}>Risk Management Settings</h3>
+                    <p className={`font-body text-xs ${isDark ? 'text-[rgba(255,255,255,0.7)]' : 'text-[var(--text-secondary)]'}`}>Configure account size and drawdown limits</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Account Size */}
+                    <div className={`p-6 rounded-xl ${isDark ? 'bg-[rgba(255,255,255,0.05)]' : 'bg-[rgba(0,0,0,0.03)]'} border ${isDark ? 'border-[rgba(255,255,255,0.1)]' : 'border-[rgba(0,0,0,0.1)]'}`}>
+                      <label className={`font-body text-sm font-medium mb-3 block ${isDark ? 'text-[rgba(255,255,255,0.8)]' : 'text-[var(--text-primary)]'}`}>
+                        Account Size ($)
+                      </label>
+                      <input
+                        type="number"
+                        value={accountSize}
+                        onChange={(e) => setAccountSize(e.target.value)}
+                        className={`w-full px-4 py-3 rounded-lg font-body text-base ${
+                          isDark 
+                            ? 'bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] text-white' 
+                            : 'bg-white border border-[rgba(0,0,0,0.1)] text-[var(--text-primary)]'
+                        } focus:outline-none focus:ring-2 focus:ring-[#00C26D] transition-all`}
+                        placeholder="10000"
+                        min="0"
+                        step="0.01"
+                      />
+                      <p className={`font-body text-xs mt-2 ${isDark ? 'text-[rgba(255,255,255,0.6)]' : 'text-[var(--text-secondary)]'}`}>
+                        Your account balance. This will be automatically updated when you upload MT5 HTML.
+                      </p>
+                    </div>
+
+                    {/* DD Percentage */}
+                    <div className={`p-6 rounded-xl ${isDark ? 'bg-[rgba(255,255,255,0.05)]' : 'bg-[rgba(0,0,0,0.03)]'} border ${isDark ? 'border-[rgba(255,255,255,0.1)]' : 'border-[rgba(0,0,0,0.1)]'}`}>
+                      <label className={`font-body text-sm font-medium mb-3 block ${isDark ? 'text-[rgba(255,255,255,0.8)]' : 'text-[var(--text-primary)]'}`}>
+                        Drawdown Percentage (%)
+                      </label>
+                      <input
+                        type="number"
+                        value={ddPercentage}
+                        onChange={(e) => setDdPercentage(e.target.value)}
+                        className={`w-full px-4 py-3 rounded-lg font-body text-base ${
+                          isDark 
+                            ? 'bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] text-white' 
+                            : 'bg-white border border-[rgba(0,0,0,0.1)] text-[var(--text-primary)]'
+                        } focus:outline-none focus:ring-2 focus:ring-[#00C26D] transition-all`}
+                        placeholder="2"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                      />
+                      <p className={`font-body text-xs mt-2 ${isDark ? 'text-[rgba(255,255,255,0.6)]' : 'text-[var(--text-secondary)]'}`}>
+                        Maximum allowed drawdown as percentage of account size. Used for Daily DD and Max DD calculations.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Calculated Limits */}
+                  <div className={`mt-6 p-6 rounded-xl ${isDark ? 'bg-[rgba(0,255,153,0.1)]' : 'bg-[rgba(0,194,109,0.08)]'} border ${isDark ? 'border-[rgba(0,255,153,0.3)]' : 'border-[rgba(0,194,109,0.3)]'}`}>
+                    <h4 className={`font-heading text-base font-semibold mb-4 ${isDark ? 'text-white' : 'text-[var(--text-primary)]'}`}>
+                      Calculated Limits
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <div className={`font-body text-xs mb-1 ${isDark ? 'text-[rgba(255,255,255,0.6)]' : 'text-[var(--text-secondary)]'}`}>Daily DD Limit</div>
+                        <div className={`font-heading text-2xl font-bold ${isDark ? 'text-[#00FF99]' : 'text-[#00C26D]'}`}>
+                          ${((parseFloat(accountSize) || 0) * (parseFloat(ddPercentage) || 0) / 100).toFixed(2)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className={`font-body text-xs mb-1 ${isDark ? 'text-[rgba(255,255,255,0.6)]' : 'text-[var(--text-secondary)]'}`}>Max DD Limit</div>
+                        <div className={`font-heading text-2xl font-bold ${isDark ? 'text-[#00FF99]' : 'text-[#00C26D]'}`}>
+                          ${((parseFloat(accountSize) || 0) * (parseFloat(ddPercentage) || 0) / 100).toFixed(2)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Info Box */}
+                  <div className={`mt-6 p-4 rounded-lg ${isDark ? 'bg-[rgba(255,255,255,0.03)]' : 'bg-[rgba(0,0,0,0.02)]'} border ${isDark ? 'border-[rgba(255,255,255,0.1)]' : 'border-[rgba(0,0,0,0.1)]'}`}>
+                    <div className="flex items-start gap-3">
+                      <Info className={`w-5 h-5 mt-0.5 ${isDark ? 'text-[rgba(255,255,255,0.6)]' : 'text-[var(--text-secondary)]'}`} />
+                      <div>
+                        <p className={`font-body text-sm ${isDark ? 'text-[rgba(255,255,255,0.8)]' : 'text-[var(--text-primary)]'}`}>
+                          <strong>How it works:</strong>
+                        </p>
+                        <ul className={`font-body text-xs mt-2 space-y-1 list-disc list-inside ${isDark ? 'text-[rgba(255,255,255,0.6)]' : 'text-[var(--text-secondary)]'}`}>
+                          <li>Account size is automatically extracted from MT5 HTML uploads</li>
+                          <li>Drawdown percentage determines the maximum allowed Daily DD and Max DD</li>
+                          <li>These limits are used in the TnT Score calculation</li>
+                          <li>Settings are saved automatically and persist across sessions</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
             </div>
           )}
         </div>

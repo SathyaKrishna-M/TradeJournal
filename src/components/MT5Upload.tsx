@@ -18,7 +18,11 @@ interface UploadProgress {
   message: string;
 }
 
-export const MT5Upload: React.FC = () => {
+interface MT5UploadProps {
+  onBalanceChange?: (balance: number) => void;
+}
+
+export const MT5Upload: React.FC<MT5UploadProps> = ({ onBalanceChange }) => {
   const { currentUser } = useAuth();
   const [state, setState] = useState<UploadState>("idle");
   const [progress, setProgress] = useState<UploadProgress>({
@@ -177,6 +181,11 @@ export const MT5Upload: React.FC = () => {
       console.log("✅ Parsed Trades:", trades.length);
       console.log("💰 Final Balance:", balance);
       console.log("📊 Summary Results:", results);
+
+      // Notify parent about balance from MT5 HTML
+      if (balance > 0 && onBalanceChange) {
+        onBalanceChange(balance);
+      }
 
       setState("uploading");
       setProgress({
