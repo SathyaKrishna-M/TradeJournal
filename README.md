@@ -26,13 +26,6 @@ Built with a depth-driven dark mode design philosophy, TracknTrade combines eleg
 
 <hr style="border: 1px solid rgba(0,255,153,0.2); margin: 2rem 0;">
 
-## 🎥 Preview
-
-<p align="center">
-  <img src="https://via.placeholder.com/800x450/0A0A0A/00FF99?text=TracknTrade+Dashboard+Demo" width="800" style="border-radius:16px; box-shadow:0 0 30px rgba(0,255,153,0.2);" alt="TracknTrade Dashboard Demo"/>
-</p>
-
-> 💡 *Replace the placeholder above with your actual demo GIF or video showing the dark mode dashboard*
 
 ---
 
@@ -40,17 +33,17 @@ Built with a depth-driven dark mode design philosophy, TracknTrade combines eleg
 
 ### Dashboard Overview
 <p align="center">
-  <img src="https://via.placeholder.com/800x500/0A0A0A/00FF99?text=TracknTrade+Dashboard" width="800" style="border-radius:16px; box-shadow:0 0 25px rgba(0,255,153,0.15); margin: 1rem 0;" alt="TracknTrade Dashboard"/>
+  <img src="/src/screenshots/Dashboard-Overview.png" width="800" style="border-radius:16px; box-shadow:0 0 25px rgba(0,255,153,0.15); margin: 1rem 0;" alt="TracknTrade Dashboard"/>
 </p>
 
-### TnT Score & Performance Metrics
+### TnT Score
 <p align="center">
-  <img src="https://via.placeholder.com/800x400/0A0A0A/00FF99?text=TnT+Score+%26+Performance+Metrics" width="800" style="border-radius:16px; box-shadow:0 0 25px rgba(0,255,153,0.15); margin: 1rem 0;" alt="TnT Score Visualization"/>
+  <img src="/src/screenshots/TnTSocre.png" width="800" style="border-radius:16px; box-shadow:0 0 25px rgba(0,255,153,0.15); margin: 1rem 0;" alt="TnT Score Visualization"/>
 </p>
 
-### Trading Calendar & Analytics
+### Trading Calendar
 <p align="center">
-  <img src="https://via.placeholder.com/800x400/0A0A0A/00FF99?text=Trading+Calendar+%26+Analytics" width="800" style="border-radius:16px; box-shadow:0 0 25px rgba(0,255,153,0.15); margin: 1rem 0;" alt="Trading Calendar"/>
+  <img src="/src/screenshots/Calender.png" width="800" style="border-radius:16px; box-shadow:0 0 25px rgba(0,255,153,0.15); margin: 1rem 0;" alt="Trading Calendar"/>
 </p>
 
 ---
