@@ -22,7 +22,7 @@
 
 **TracknTrade** is a next-generation trading analytics dashboard that helps traders visualize their performance, track key metrics like Profit Target, Drawdown, and Win Rate, and stay disciplined through data-driven insights.
 
-Built with a depth-driven design philosophy, TracknTrade combines elegant UI/UX with powerful analytics to provide funded traders and challenge account holders with the tools they need to succeed.
+Built with a depth-driven dark mode design philosophy, TracknTrade combines elegant UI/UX with powerful analytics to provide funded traders and challenge account holders with the tools they need to succeed.
 
 <hr style="border: 1px solid rgba(0,255,153,0.2); margin: 2rem 0;">
 
@@ -32,25 +32,25 @@ Built with a depth-driven design philosophy, TracknTrade combines elegant UI/UX 
   <img src="https://via.placeholder.com/800x450/0A0A0A/00FF99?text=TracknTrade+Dashboard+Demo" width="800" style="border-radius:16px; box-shadow:0 0 30px rgba(0,255,153,0.2);" alt="TracknTrade Dashboard Demo"/>
 </p>
 
-> 💡 *Replace the placeholder above with your actual demo GIF or video*
+> 💡 *Replace the placeholder above with your actual demo GIF or video showing the dark mode dashboard*
 
 ---
 
 ## 📸 Screenshots
 
-### Dark Mode
+### Dashboard Overview
 <p align="center">
-  <img src="https://via.placeholder.com/800x500/0A0A0A/00FF99?text=Dark+Mode+Dashboard" width="800" style="border-radius:16px; box-shadow:0 0 25px rgba(0,255,153,0.15); margin: 1rem 0;" alt="TracknTrade Dark Mode"/>
-</p>
-
-### Light Mode
-<p align="center">
-  <img src="https://via.placeholder.com/800x500/F9FAFB/00C26D?text=Light+Mode+Dashboard" width="800" style="border-radius:16px; box-shadow:0 0 25px rgba(0,194,109,0.15); margin: 1rem 0;" alt="TracknTrade Light Mode"/>
+  <img src="https://via.placeholder.com/800x500/0A0A0A/00FF99?text=TracknTrade+Dashboard" width="800" style="border-radius:16px; box-shadow:0 0 25px rgba(0,255,153,0.15); margin: 1rem 0;" alt="TracknTrade Dashboard"/>
 </p>
 
 ### TnT Score & Performance Metrics
 <p align="center">
   <img src="https://via.placeholder.com/800x400/0A0A0A/00FF99?text=TnT+Score+%26+Performance+Metrics" width="800" style="border-radius:16px; box-shadow:0 0 25px rgba(0,255,153,0.15); margin: 1rem 0;" alt="TnT Score Visualization"/>
+</p>
+
+### Trading Calendar & Analytics
+<p align="center">
+  <img src="https://via.placeholder.com/800x400/0A0A0A/00FF99?text=Trading+Calendar+%26+Analytics" width="800" style="border-radius:16px; box-shadow:0 0 25px rgba(0,255,153,0.15); margin: 1rem 0;" alt="Trading Calendar"/>
 </p>
 
 ---
@@ -73,10 +73,9 @@ Built with a depth-driven design philosophy, TracknTrade combines elegant UI/UX 
 
 - **Frontend Framework:** React 18.3 with TypeScript
 - **Build Tool:** Vite 5.4
-- **Styling:** TailwindCSS 3.4 with custom depth-driven design system
+- **Styling:** TailwindCSS 3.4 with custom depth-driven dark mode design system
 - **Charts:** Recharts 2.15 for data visualization
 - **Animations:** Framer Motion 12.2
-- **Theme Management:** next-themes
 - **Backend:** Firebase (Firestore, Authentication)
 - **Routing:** React Router DOM 6.3
 - **UI Components:** Radix UI + shadcn/ui
@@ -93,7 +92,7 @@ Built with a depth-driven design philosophy, TracknTrade combines elegant UI/UX 
 | 🎯 **Editable Progress Goals** | Set and monitor Profit Target, Daily DD, and Max DD with editable limits |
 | 📆 **Interactive Trade Calendar** | Visualize daily P&L, win rates, and trading activity in an elegant calendar view |
 | 📈 **TnT Score Radar Chart** | Comprehensive performance score across Consistency, RR, Win Rate, and SL Usage |
-| 🌓 **Adaptive Themes** | Seamless dark & light mode switching with depth-driven design |
+| 🌑 **Dark Mode Design** | Beautiful dark mode interface with depth-driven design and glowing green accents |
 | 💚 **Fintech UI** | Modern gradient UI with glowing green accents and smooth animations |
 | 📊 **MT5 HTML Import** | Automatically parse and import trades from MT5 HTML reports |
 | 🔄 **Real-time Sync** | Firebase-powered real-time data synchronization |
@@ -155,21 +154,21 @@ The production-ready files will be in the `dist/` directory.
 
 ---
 
-## 🌗 Light & Dark Modes
+## 🎨 Design System
 
-TracknTrade features a sophisticated dual-theme system with depth-driven design principles:
+TracknTrade features a sophisticated dark mode design with depth-driven principles:
 
 <p align="center">
-  <img src="https://via.placeholder.com/400x300/F9FAFB/00C26D?text=Light+Mode" width="400" style="border-radius:10px; margin:5px; box-shadow:0 0 20px rgba(0,194,109,0.1);" alt="Light Mode">
-  <img src="https://via.placeholder.com/400x300/0A0A0A/00FF99?text=Dark+Mode" width="400" style="border-radius:10px; margin:5px; box-shadow:0 0 20px rgba(0,255,153,0.2);" alt="Dark Mode">
+  <img src="https://via.placeholder.com/800x450/0A0A0A/00FF99?text=Dark+Mode+Design+System" width="800" style="border-radius:16px; box-shadow:0 0 30px rgba(0,255,153,0.2); margin: 1rem 0;" alt="Design System">
 </p>
 
 ### Design Philosophy
 
-- **Dark Mode:** Deep blacks (#0A0A0A) with neon green accents (#00FF99)
-- **Light Mode:** Clean whites (#F9FAFB) with teal accents (#00C26D)
-- **Depth System:** Multi-layered shadows and glows for realistic elevation
-- **Smooth Transitions:** Animated theme switching with Framer Motion
+- **Dark Mode First:** Deep blacks (#0A0A0A) with neon green accents (#00FF99) as the default theme
+- **Depth System:** Multi-layered shadows and glows for realistic elevation and visual hierarchy
+- **Gradient Accents:** Vibrant green gradients (#00FF99 → #00CC66) for highlights and interactive elements
+- **Smooth Animations:** Fluid transitions and hover effects with Framer Motion for enhanced UX
+- **Typography:** Satoshi for headings, Inter for body text - optimized for dark mode readability
 
 ---
 
@@ -201,15 +200,15 @@ trackntrade/
 
 ---
 
-## 🎨 Design System
+## 🎨 Visual Design
 
-TracknTrade uses a custom depth-driven design system:
+TracknTrade uses a custom depth-driven design system optimized for dark mode:
 
-- **Typography:** Satoshi (headings) + Inter (body)
-- **Color Palette:** Green gradient accents (#00FF99 → #00CC66)
-- **Shadows:** Multi-layered depth system with top glows and bottom shadows
-- **Animations:** Smooth transitions and hover effects
-- **Spacing:** Consistent 8px grid system
+- **Typography:** Satoshi (headings) + Inter (body) with optimal readability
+- **Color Palette:** Neon green gradient accents (#00FF99 → #00CC66) on dark backgrounds
+- **Shadows:** Multi-layered depth system with top glows and bottom shadows for elevation
+- **Animations:** Smooth transitions and hover effects for enhanced interactivity
+- **Spacing:** Consistent 8px grid system for perfect alignment
 
 ---
 
