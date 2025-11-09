@@ -1,73 +1,305 @@
-# Welcome to your Lovable project
+<div align="center">
 
-## Project info
+<h1 align="center">
+  <img src="https://readme-typing-svg.demolab.com?font=Satoshi&size=32&duration=2500&pause=1000&color=00FF99&center=true&vCenter=true&width=500&lines=TracknTrade+Dashboard;Analyze.+Adapt.+Advance." />
+</h1>
 
-**URL**: https://lovable.dev/projects/98af60fb-07fb-4ccb-baf4-3c07158d1e82
+<p align="center">
+  <em>Your performance, visualized beautifully.</em>
+</p>
 
-## How can I edit this code?
+[![React](https://img.shields.io/badge/React-18.3-00FF99?style=flat-square&logo=react&logoColor=white)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-5.4-646CFF?style=flat-square&logo=vite&logoColor=FFD62E)](https://vitejs.dev/)
+[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Firebase](https://img.shields.io/badge/Firebase-12.4-FFCA28?style=flat-square&logo=firebase&logoColor=black)](https://firebase.google.com/)
 
-There are several ways of editing your application.
+</div>
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/98af60fb-07fb-4ccb-baf4-3c07158d1e82) and start prompting.
+## 🧭 About TracknTrade
 
-Changes made via Lovable will be committed automatically to this repo.
+**TracknTrade** is a next-generation trading analytics dashboard that helps traders visualize their performance, track key metrics like Profit Target, Drawdown, and Win Rate, and stay disciplined through data-driven insights.
 
-**Use your preferred IDE**
+Built with a depth-driven design philosophy, TracknTrade combines elegant UI/UX with powerful analytics to provide funded traders and challenge account holders with the tools they need to succeed.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+<hr style="border: 1px solid rgba(0,255,153,0.2); margin: 2rem 0;">
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## 🎥 Preview
 
-Follow these steps:
+<p align="center">
+  <img src="https://via.placeholder.com/800x450/0A0A0A/00FF99?text=TracknTrade+Dashboard+Demo" width="800" style="border-radius:16px; box-shadow:0 0 30px rgba(0,255,153,0.2);" alt="TracknTrade Dashboard Demo"/>
+</p>
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+> 💡 *Replace the placeholder above with your actual demo GIF or video*
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+---
 
-# Step 3: Install the necessary dependencies.
-npm i
+## 📸 Screenshots
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+### Dark Mode
+<p align="center">
+  <img src="https://via.placeholder.com/800x500/0A0A0A/00FF99?text=Dark+Mode+Dashboard" width="800" style="border-radius:16px; box-shadow:0 0 25px rgba(0,255,153,0.15); margin: 1rem 0;" alt="TracknTrade Dark Mode"/>
+</p>
+
+### Light Mode
+<p align="center">
+  <img src="https://via.placeholder.com/800x500/F9FAFB/00C26D?text=Light+Mode+Dashboard" width="800" style="border-radius:16px; box-shadow:0 0 25px rgba(0,194,109,0.15); margin: 1rem 0;" alt="TracknTrade Light Mode"/>
+</p>
+
+### TnT Score & Performance Metrics
+<p align="center">
+  <img src="https://via.placeholder.com/800x400/0A0A0A/00FF99?text=TnT+Score+%26+Performance+Metrics" width="800" style="border-radius:16px; box-shadow:0 0 25px rgba(0,255,153,0.15); margin: 1rem 0;" alt="TnT Score Visualization"/>
+</p>
+
+---
+
+## ⚙️ Tech Stack
+
+<div align="center">
+
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=FFD62E)
+![TailwindCSS](https://img.shields.io/badge/TailwindCSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
+![Recharts](https://img.shields.io/badge/Recharts-FF6384?style=for-the-badge&logo=chartdotjs&logoColor=white)
+![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black)
+![Framer Motion](https://img.shields.io/badge/Framer%20Motion-0055FF?style=for-the-badge&logo=framer&logoColor=white)
+
+</div>
+
+### Core Technologies
+
+- **Frontend Framework:** React 18.3 with TypeScript
+- **Build Tool:** Vite 5.4
+- **Styling:** TailwindCSS 3.4 with custom depth-driven design system
+- **Charts:** Recharts 2.15 for data visualization
+- **Animations:** Framer Motion 12.2
+- **Theme Management:** next-themes
+- **Backend:** Firebase (Firestore, Authentication)
+- **Routing:** React Router DOM 6.3
+- **UI Components:** Radix UI + shadcn/ui
+
+---
+
+## 📊 Key Features
+
+<div align="center">
+
+| Feature | Description |
+|---------|-------------|
+| 🧮 **Real-time Equity Curve** | Track your account performance with live equity curve visualization |
+| 🎯 **Editable Progress Goals** | Set and monitor Profit Target, Daily DD, and Max DD with editable limits |
+| 📆 **Interactive Trade Calendar** | Visualize daily P&L, win rates, and trading activity in an elegant calendar view |
+| 📈 **TnT Score Radar Chart** | Comprehensive performance score across Consistency, RR, Win Rate, and SL Usage |
+| 🌓 **Adaptive Themes** | Seamless dark & light mode switching with depth-driven design |
+| 💚 **Fintech UI** | Modern gradient UI with glowing green accents and smooth animations |
+| 📊 **MT5 HTML Import** | Automatically parse and import trades from MT5 HTML reports |
+| 🔄 **Real-time Sync** | Firebase-powered real-time data synchronization |
+| 📱 **Fully Responsive** | Optimized for desktop, tablet, and mobile devices |
+
+</div>
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- **Node.js** 18.x or higher
+- **npm** or **yarn** package manager
+- **Firebase** project (for backend functionality)
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/trackntrade.git
+   cd trackntrade
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables**
+   
+   Create a `.env` file in the root directory:
+   ```env
+   VITE_FIREBASE_API_KEY=your_api_key
+   VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
+   VITE_FIREBASE_PROJECT_ID=your_project_id
+   VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+   VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   VITE_FIREBASE_APP_ID=your_app_id
+   ```
+
+4. **Run the development server**
+   ```bash
+   npm run dev
+   ```
+
+5. **Open your browser**
+   
+   Navigate to `http://localhost:8080` to see the dashboard.
+
+### Build for Production
+
+```bash
+npm run build
 ```
 
-**Edit a file directly in GitHub**
+The production-ready files will be in the `dist/` directory.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+---
 
-**Use GitHub Codespaces**
+## 🌗 Light & Dark Modes
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+TracknTrade features a sophisticated dual-theme system with depth-driven design principles:
 
-## What technologies are used for this project?
+<p align="center">
+  <img src="https://via.placeholder.com/400x300/F9FAFB/00C26D?text=Light+Mode" width="400" style="border-radius:10px; margin:5px; box-shadow:0 0 20px rgba(0,194,109,0.1);" alt="Light Mode">
+  <img src="https://via.placeholder.com/400x300/0A0A0A/00FF99?text=Dark+Mode" width="400" style="border-radius:10px; margin:5px; box-shadow:0 0 20px rgba(0,255,153,0.2);" alt="Dark Mode">
+</p>
 
-This project is built with:
+### Design Philosophy
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- **Dark Mode:** Deep blacks (#0A0A0A) with neon green accents (#00FF99)
+- **Light Mode:** Clean whites (#F9FAFB) with teal accents (#00C26D)
+- **Depth System:** Multi-layered shadows and glows for realistic elevation
+- **Smooth Transitions:** Animated theme switching with Framer Motion
 
-## How can I deploy this project?
+---
 
-Simply open [Lovable](https://lovable.dev/projects/98af60fb-07fb-4ccb-baf4-3c07158d1e82) and click on Share -> Publish.
+## 📁 Project Structure
 
-## Can I connect a custom domain to my Lovable project?
+```
+trackntrade/
+├── src/
+│   ├── components/          # Reusable UI components
+│   │   ├── ui/             # shadcn/ui components
+│   │   ├── TnTScore.tsx    # TnT Score radar chart
+│   │   ├── PerformanceMetrics.tsx
+│   │   ├── TradingCalendar.tsx
+│   │   └── ...
+│   ├── pages/              # Page components
+│   │   ├── Index.tsx       # Main dashboard
+│   │   ├── AuthPage.tsx
+│   │   └── ProfilePage.tsx
+│   ├── context/            # React context providers
+│   ├── hooks/              # Custom React hooks
+│   ├── lib/                # Utility libraries
+│   ├── utils/              # Helper functions
+│   └── index.css           # Global styles
+├── public/                 # Static assets
+├── package.json
+├── vite.config.ts
+└── tailwind.config.ts
+```
 
-Yes, you can!
+---
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 🎨 Design System
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+TracknTrade uses a custom depth-driven design system:
+
+- **Typography:** Satoshi (headings) + Inter (body)
+- **Color Palette:** Green gradient accents (#00FF99 → #00CC66)
+- **Shadows:** Multi-layered depth system with top glows and bottom shadows
+- **Animations:** Smooth transitions and hover effects
+- **Spacing:** Consistent 8px grid system
+
+---
+
+## 🔧 Configuration
+
+### Firebase Setup
+
+1. Create a Firebase project at [Firebase Console](https://console.firebase.google.com/)
+2. Enable **Authentication** (Email/Password)
+3. Create a **Firestore Database**
+4. Copy your Firebase config to `.env`
+
+### Customization
+
+Edit `tailwind.config.ts` to customize:
+- Color scheme
+- Font families
+- Spacing scale
+- Shadow definitions
+
+---
+
+## 📈 Features in Detail
+
+### TnT Score
+- **4-Metric Radar Chart:** Consistency, Risk Reward, Win Rate, SL Usage
+- **Overall Score:** Calculated average with real-time updates
+- **Visual Feedback:** Green gradient fill with smooth animations
+
+### Performance Metrics
+- **Profit Target:** Track progress toward profit goals
+- **Daily DD:** Monitor daily drawdown limits
+- **Max DD:** Track maximum drawdown from initial balance
+- **Editable Limits:** Click pencil icon to adjust thresholds
+
+### Trading Calendar
+- **Daily P&L Visualization:** Color-coded profit/loss indicators
+- **Win Rate Tracking:** Per-day win rate calculations
+- **Interactive Hover:** Detailed trade information on hover
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Here's how you can help:
+
+1. **Fork the repository**
+2. **Create a feature branch** (`git checkout -b feature/amazing-feature`)
+3. **Commit your changes** (`git commit -m 'Add amazing feature'`)
+4. **Push to the branch** (`git push origin feature/amazing-feature`)
+5. **Open a Pull Request**
+
+### Guidelines
+
+- Follow the existing code style (TypeScript + ESLint)
+- Add tests for new features
+- Update documentation as needed
+- Ensure responsive design compatibility
+
+---
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- **shadcn/ui** for the beautiful component library
+- **Recharts** for powerful charting capabilities
+- **Framer Motion** for smooth animations
+- **Radix UI** for accessible primitives
+- **Firebase** for backend infrastructure
+
+---
+
+<div align="center">
+
+<hr style="border: 1px solid rgba(0,255,153,0.2); margin: 2rem 0;">
+
+<p align="center">
+  <img src="https://readme-typing-svg.demolab.com?font=Inter&size=18&duration=2500&pause=1000&color=00FF99&center=true&vCenter=true&width=435&lines=Made+with+💚+by+Team+TracknTrade" />
+</p>
+
+<p align="center">
+  <strong>Analyze. Adapt. Advance.</strong>
+</p>
+
+[![GitHub stars](https://img.shields.io/github/stars/yourusername/trackntrade?style=social&label=Star)](https://github.com/yourusername/trackntrade)
+[![GitHub forks](https://img.shields.io/github/forks/yourusername/trackntrade?style=social&label=Fork)](https://github.com/yourusername/trackntrade)
+
+</div>
